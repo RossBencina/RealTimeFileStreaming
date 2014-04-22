@@ -1,0 +1,196 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="PortAudio">
+      <UniqueIdentifier>{4fd15b74-0037-48fb-9466-354f87284b90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="QueueWorld">
+      <UniqueIdentifier>{0b2a86b7-2ac0-4cc6-9937-f4c330b3bd1c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PortAudio\common">
+      <UniqueIdentifier>{0043847b-7561-49af-a918-74dd24d08f85}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PortAudio\hostapi">
+      <UniqueIdentifier>{a628f10f-0ec4-4893-ad38-a12890cfafc7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PortAudio\include">
+      <UniqueIdentifier>{f35beac7-df04-4c36-9a24-9ab9227bb2c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PortAudio\os-win">
+      <UniqueIdentifier>{43835245-b335-430c-91f0-8f8de4bf6373}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\DataBlock.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\FileIoReadStream.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\FileIoRequest.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\FileIoServer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\SharedBuffer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\QueueWorld\include\qw_atomic.h">
+      <Filter>QueueWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\QueueWorld\include\qw_remove_pointer.h">
+      <Filter>QueueWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\QueueWorld\include\QwConfig.h">
+      <Filter>QueueWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\QueueWorld\include\QwList.h">
+      <Filter>QueueWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\QueueWorld\include\QwMpmcPopAllLifoStack.h">
+      <Filter>QueueWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\QueueWorld\include\QwMpscFifoQueue.h">
+      <Filter>QueueWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\QueueWorld\include\QwNodePool.h">
+      <Filter>QueueWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\QueueWorld\include\QwSingleLinkNodeInfo.h">
+      <Filter>QueueWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\QueueWorld\include\QwSList.h">
+      <Filter>QueueWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\QueueWorld\include\QwSpscUnorderedResultQueue.h">
+      <Filter>QueueWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\QueueWorld\include\QwSTailList.h">
+      <Filter>QueueWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_allocation.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_converters.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_cpuload.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_debugprint.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_dither.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_endianness.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_hostapi.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_memorybarrier.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_process.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_ringbuffer.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_stream.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_trace.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_types.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\common\pa_util.h">
+      <Filter>PortAudio\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\include\pa_win_wmme.h">
+      <Filter>PortAudio\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\include\portaudio.h">
+      <Filter>PortAudio\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\os\win\pa_win_coinitialize.h">
+      <Filter>PortAudio\os-win</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\portaudio\src\os\win\pa_win_wdmks_utils.h">
+      <Filter>PortAudio\os-win</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\FileIoReadStream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\FileIoServer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\PlayFileMain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\SharedBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\common\pa_allocation.c">
+      <Filter>PortAudio\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\common\pa_converters.c">
+      <Filter>PortAudio\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\common\pa_cpuload.c">
+      <Filter>PortAudio\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\common\pa_debugprint.c">
+      <Filter>PortAudio\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\common\pa_dither.c">
+      <Filter>PortAudio\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\common\pa_front.c">
+      <Filter>PortAudio\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\common\pa_process.c">
+      <Filter>PortAudio\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\common\pa_ringbuffer.c">
+      <Filter>PortAudio\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\common\pa_stream.c">
+      <Filter>PortAudio\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\common\pa_trace.c">
+      <Filter>PortAudio\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\hostapi\wmme\pa_win_wmme.c">
+      <Filter>PortAudio\hostapi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\os\win\pa_win_coinitialize.c">
+      <Filter>PortAudio\os-win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\os\win\pa_win_hostapis.c">
+      <Filter>PortAudio\os-win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\os\win\pa_win_util.c">
+      <Filter>PortAudio\os-win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\os\win\pa_win_waveformat.c">
+      <Filter>PortAudio\os-win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\portaudio\src\os\win\pa_win_wdmks_utils.c">
+      <Filter>PortAudio\os-win</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\QueueWorld\src\QwNodePool.cpp">
+      <Filter>QueueWorld</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

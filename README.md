@@ -7,6 +7,23 @@ Example of interfacing PortAudio real time audio with file I/O
 
 This is example code that I'm working on for a conference paper and some blog posts. It probably won't make much sense without the documentation, which will be available by July. Until then feel free to email me with questions. -- Ross.
 
+Source code overview
+--------------------
+
+`FileIoReadStream.h/.cpp` a client stream object, used for streaming data read from disk. Lock-free and real-time safe. 
+
+`FileIoRequest.h` asynchronous message node object. Used to represent requests to, and replies from, the I/O server thread.
+
+`FileIoServer.h/.cpp` file I/O server thread. Responds to FileIoRequests from client streams.
+
+`DataBlock.h` buffer descriptor. Used to represent blocks of data read from disk. Pointers to DataBlocks are passed between server and client in FileIoRequest messages.
+
+`SharedBuffer.h/.cpp` reference counted immutable shared buffer with lock-free cleanup. Used for storing file paths. 
+
+`PlayFileMain.cpp` example real-time audio program.
+
+
+
 How to build and run the example
 --------------------------------
 

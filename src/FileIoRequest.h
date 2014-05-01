@@ -120,7 +120,8 @@ struct FileIoRequest{
         } releaseUnmodifiedWriteBlock;
 
         /* CLEANUP_RESULT_QUEUE */
-        QwSpscUnorderedResultQueue<FileIoRequest*,TRANSIT_NEXT_LINK_INDEX> resultQueue;
+        typedef QwSpscUnorderedResultQueue<FileIoRequest*,TRANSIT_NEXT_LINK_INDEX> result_queue_t;
+        result_queue_t resultQueue;
     };
 };
 

@@ -47,8 +47,8 @@ You should now have the following directories:
  portaudio/
 ```
 
-On Windows, with MSVC2010 or later, navigate to `RealTimeFileStreaming\build\msvs10\RealTimeFileStreaming` and open the Visual Studio solution file RealTimeFileStreaming.sln
+2. On Windows, with MSVC2010 or later, navigate to `RealTimeFileStreaming\build\msvs10\RealTimeFileStreaming` and open the Visual Studio solution file RealTimeFileStreaming.sln
 
-Run the project. It should build and run, playing a sine wave. There are instructions on the screen for starting and stopping recording and playback.
+3. Run the project. It should build and run, playing a sine wave. There are instructions on the screen for starting and stopping recording and playback.
 
 To play an existing file you need to provide one. The source code only reads headerless 16-bit stereo files (44.1k for the default settings). You should create such a file and then code its name into the main() function in PlayFileMain.cpp, in the line that reads `paStreamData.readFilePath = SharedBufferAllocator::alloc("C:\\Users\\Ross...");`

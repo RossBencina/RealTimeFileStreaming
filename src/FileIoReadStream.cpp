@@ -32,7 +32,107 @@
 #include "DataBlock.h"
 
 
-class FileIoReadStreamWrapper { // Object-oriented wrapper for a read stream
+struct ReadBlockRequestBehavior {
+
+    // when not in-flight, the request type field represents the state of the block request.
+    // the acquire request type is mapped to the PENDING state.
+    enum BlockState {
+        BLOCK_STATE_PENDING = FileIoRequest::READ_BLOCK,
+        BLOCK_STATE_READY = FileIoRequest::CLIENT_USE_BASE_,
+        BLOCK_STATE_MODIFIED, // not used for read streams
+        BLOCK_STATE_ERROR
+    };
+
+
+    // L-value aliases. Map/alias request fields to our use of them.
+
+    static FileIoRequest*& next_(FileIoRequest *r) { return r->links_[FileIoRequest::CLIENT_NEXT_LINK_INDEX]; }
+    static int& state_(FileIoRequest *r) { return r->requestType; }
+    static size_t& bytesCopied_(FileIoRequest *r) { return r->clientInt; }
+
+    // predicates
+
+    static bool isAcquireBlockRequest(FileIoRequest *r) { return (r->requestType == FileIoRequest::READ_BLOCK); }
+    static bool hasDataBlock(FileIoRequest *r) { return (r->readBlock.dataBlock != 0); }
+    
+    //static bool isLastBlock(FileIoRequest *r) { return r->readBlock.isAtEof; } // used to signal that playback has reached end of file. not use for recording, should always return true there.
+
+    // fields
+
+    static bool isDiscarded(FileIoRequest *r) { return bytesCopied_(r)==-1; }
+    static void setDiscarded(FileIoRequest *r) { bytesCopied_(r)=-1; }
+
+    static size_t filePosition(FileIoRequest *r) { return r->readBlock.filePosition; }
+
+
+    // In abstract terms, data blocks are /acquired/ from the server and /released/ back to the server.
+    // For read-only streams this means READ_BLOCK --> RELEASE_READ_BLOCK
+    // For write-only streams this means ALLOCATE_WRITE_BLOCK --> (RELEASE_UNMODIFIED_WRITE_BLOCK | COMMIT_MODIFIED_WRITE_BLOCK)
+
+    static void initAcquireBlockRequest( FileIoRequest *blockReq, void *fileHandle, size_t pos, FileIoRequest *resultQueueReq )
+    {
+        next_(blockReq) = 0;
+        blockReq->resultStatus = 0;
+        bytesCopied_(blockReq) = 0;
+        blockReq->requestType = FileIoRequest::READ_BLOCK;
+
+        blockReq->readBlock.fileHandle = fileHandle;
+        blockReq->readBlock.filePosition = pos;
+        blockReq->readBlock.dataBlock = 0;
+        blockReq->readBlock.resultQueue = resultQueueReq;
+    }
+
+    static void transformBlockRequestToReleaseUnmodified( FileIoRequest *blockReq )
+    {
+        void *fileHandle = blockReq->readBlock.fileHandle;
+        DataBlock *dataBlock = blockReq->readBlock.dataBlock;
+
+        blockReq->requestType = FileIoRequest::RELEASE_READ_BLOCK;
+        blockReq->releaseReadBlock.fileHandle = fileHandle;
+        blockReq->releaseReadBlock.dataBlock = dataBlock;
+    }
+
+    static void transformBlockRequestToCommitModified( FileIoRequest *readBlockReq )
+    {
+        assert(false);
+    }
+
+
+    // the copyBlockData routine copies data into or out of the block.
+
+    enum CopyStatus { CAN_CONTINUE, AT_BLOCK_END, AT_FINAL_BLOCK_END };
+
+    static CopyStatus copyBlockData( FileIoRequest *blockReq, void *userBytesPtr, size_t maxBytesToCopy, size_t itemSize, size_t *bytesCopiedResult )
+    {
+        size_t blockBytesCopiedSoFar = bytesCopied_(blockReq);
+        size_t bytesRemainingInBlock = blockReq->readBlock.dataBlock->validCountBytes - blockBytesCopiedSoFar;
+
+        size_t N = std::min<size_t>( bytesRemainingInBlock, maxBytesToCopy );
+
+        std::memcpy(userBytesPtr, static_cast<int8_t*>(blockReq->readBlock.dataBlock->data)+blockBytesCopiedSoFar, N);
+
+        bytesCopied_(blockReq) += N;
+
+        *bytesCopiedResult = N;
+
+        // sanity check:
+        bytesRemainingInBlock -= N;
+        assert( bytesRemainingInBlock == 0 || bytesRemainingInBlock >= itemSize ); // HACK: assume that itemSize divides block size, otherwise we need to deal with items overlapping blocks and that wouldn't be time-efficient
+
+        if (bytesRemainingInBlock==0) {
+            if (blockReq->readBlock.isAtEof)
+                return AT_FINAL_BLOCK_END;
+            else
+               return AT_BLOCK_END;
+        } else {
+            return CAN_CONTINUE;
+        }
+    }
+};
+
+
+template< typename BlockReq >
+class FileIoStreamWrapper { // Object-oriented wrapper for a read and write streams
 
     FileIoRequest *resultQueueReq_; // The data structure is represented by a linked structure of FileIoRequest objects
 
@@ -49,10 +149,12 @@ class FileIoReadStreamWrapper { // Object-oriented wrapper for a read stream
                  |         (openFileReq)                    |
           (head) |                                   (tail) | 
                  V                                          V
-       {  [ READ_BLOCK ] -> [ READ_BLOCK ] -> ... -> [ READ_BLOCK ] -> NULL  } (prefetchQueue)
+          [ READ_BLOCK ] -> [ READ_BLOCK ] -> ... -> [ READ_BLOCK ] -> NULL    } (prefetchQueue)
 
 
-       [ ... ] indicates a FileIoRequest structure.
+       "[ ... ]" indicates a FileIoRequest structure.
+
+       For a write stream, the prefetch queue contains ALLOCATE_WRITE_BLOCK requests.
     */
 
     // Stream field lvalue aliases. Map/alias request fields to fields of our pseudo-class.
@@ -66,38 +168,8 @@ class FileIoReadStreamWrapper { // Object-oriented wrapper for a read stream
     size_t& waitingForBlocksCount_() { return resultQueueReq_->clientInt; }
     FileIoRequest::result_queue_t& resultQueue() { return resultQueueReq_->resultQueue; }
 
-    // Data block request field lvalue aliases. Map/alias request fields to our use of them.
-
-    FileIoRequest*& blockReq_next_(FileIoRequest *r) { return r->links_[FileIoRequest::CLIENT_NEXT_LINK_INDEX]; }
-    int& blockReq_state_(FileIoRequest *r) { return r->requestType; }
-    size_t& blockReq_bytesCopied_(FileIoRequest *r) { return r->clientInt; }
-    bool blockReq_isDiscarded(FileIoRequest *r) { return blockReq_bytesCopied_(r)==-1; }
-    void blockReq_setDiscarded(FileIoRequest *r) { blockReq_bytesCopied_(r)=-1; }
-
-    // Block request state:
-
-    enum ReadStreamBlockState {
-        READSTREAM_BLOCK_PENDING = FileIoRequest::READ_BLOCK,
-        READSTREAM_BLOCK_READY = FileIoRequest::CLIENT_USE_BASE_,
-        READSTREAM_BLOCK_ERROR
-    };
-    
-
-    FileIoReadStreamWrapper( FileIoRequest *resultQueueReq )
+    FileIoStreamWrapper( FileIoRequest *resultQueueReq )
         : resultQueueReq_( resultQueueReq ) {}
-
-    void initReadBlockRequest( FileIoRequest *readBlockReq, size_t pos )
-    {
-        blockReq_next_(readBlockReq) = 0;
-        readBlockReq->resultStatus = 0;
-        blockReq_bytesCopied_(readBlockReq) = 0;
-        readBlockReq->requestType = FileIoRequest::READ_BLOCK;
-
-        readBlockReq->readBlock.fileHandle = openFileReq()->openFile.fileHandle;
-        readBlockReq->readBlock.filePosition = pos;
-        readBlockReq->readBlock.dataBlock = 0;
-        readBlockReq->readBlock.resultQueue = resultQueueReq_;
-    }
 
     FileIoRequest* prefetchQueue_front()
     {
@@ -107,71 +179,72 @@ class FileIoReadStreamWrapper { // Object-oriented wrapper for a read stream
     void prefetchQueue_pop_front()
     {
         FileIoRequest *x = prefetchQueueHead_();
-        prefetchQueueHead_() = blockReq_next_(x);
-        blockReq_next_(x) = 0;
+        prefetchQueueHead_() = BlockReq::next_(x);
+        BlockReq::next_(x) = 0;
     }
 
-    void prefetchQueue_push_back( FileIoRequest *readBlockReq )
+    void prefetchQueue_push_back( FileIoRequest *blockReq )
     {
         assert( prefetchQueueTail_() != 0 ); // doesn't deal with an empty queue, doesn't need to
-        blockReq_next_(prefetchQueueTail_()) = readBlockReq;
-        prefetchQueueTail_() = readBlockReq;
+        BlockReq::next_(prefetchQueueTail_()) = blockReq;
+        prefetchQueueTail_() = blockReq;
     }
 
-    void initLinkAndSendSequentialReadBlockRequest( FileIoRequest *readBlockReq )
+    void sendBlockRequestToServer( FileIoRequest *blockReq )
     {
-        // Init, link, and send a sequential READ_BLOCK request.
-        // Init a READ_BLOCK request for the block following the latest block in the prefetch queue;
+        ::sendFileIoRequestToServer( blockReq );
+        resultQueue().incrementExpectedResultCount();
+        ++waitingForBlocksCount_();
+    }
+
+    // Init, link and send sequential block request
+    void initLinkAndSendSequentialBlockRequest( FileIoRequest *blockReq )
+    {
+        // Init, link, and send a sequential data block acquire request (READ_BLOCK or ALLOCATE_WRITE_BLOCK).
+        // Init the block request so that it's file position directly follows the tail block in the prefetch queue;
         // link the request onto the back of the prefetch queue; send the request to the server.
 
         // precondition: prefetch queue is non-empty
         assert( prefetchQueueHead_() !=0 && prefetchQueueTail_() !=0 );
 
-        initReadBlockRequest( readBlockReq,
-                prefetchQueueTail_()->readBlock.filePosition + IO_DATA_BLOCK_DATA_CAPACITY_BYTES );
+        BlockReq::initAcquireBlockRequest( blockReq, openFileReq()->openFile.fileHandle,
+                BlockReq::filePosition(prefetchQueueTail_()) + IO_DATA_BLOCK_DATA_CAPACITY_BYTES, resultQueueReq_ );
 
-        prefetchQueue_push_back( readBlockReq );
+        prefetchQueue_push_back(blockReq);
 
-        // send READ_BLOCK request to server
-        ::sendFileIoRequestToServer( readBlockReq );
-        resultQueue().incrementExpectedResultCount();
-        ++waitingForBlocksCount_();
+        sendBlockRequestToServer(blockReq);
     }
 
-    static void releaseReadBlockToServer( FileIoRequest *blockReq )
+    void flushBlock( FileIoRequest *blockReq )
     {
-        void *fileHandle = blockReq->readBlock.fileHandle;
-        DataBlock *dataBlock = blockReq->readBlock.dataBlock;
-
-        blockReq->requestType = FileIoRequest::RELEASE_READ_BLOCK;
-        blockReq->releaseReadBlock.fileHandle = fileHandle;
-        blockReq->releaseReadBlock.dataBlock = dataBlock;
-        ::sendFileIoRequestToServer( blockReq );
-    }
-
-    void flushReadBlock( FileIoRequest *blockReq )
-    {
-        switch (blockReq_state_(blockReq))
+        switch (BlockReq::state_(blockReq))
         {
-        case READSTREAM_BLOCK_PENDING:
+        case BlockReq::BLOCK_STATE_PENDING:
             // Forget the block, it will show up in the result queue later, 
             // and will be cleaned up from there.
 
             // Setting the "discarded" flag is used when the stream is still alive and we 
             // need to remove a pending request from the prefetch queue. 
             // See receiveOneBlock() for discarded block handling.
-            blockReq_setDiscarded(blockReq);
+            BlockReq::setDiscarded(blockReq);
 
             --waitingForBlocksCount_();
             break;
 
-        case READSTREAM_BLOCK_READY:
-            assert( blockReq->readBlock.dataBlock != 0 );
-            releaseReadBlockToServer( blockReq );
+        case BlockReq::BLOCK_STATE_READY:
+            assert( BlockReq::hasDataBlock(blockReq) );
+            BlockReq::transformBlockRequestToReleaseUnmodified(blockReq);
+            ::sendFileIoRequestToServer( blockReq );
             break;
 
-        case READSTREAM_BLOCK_ERROR:
-            assert( blockReq->readBlock.dataBlock == 0 );
+        case BlockReq::BLOCK_STATE_MODIFIED:
+            assert( BlockReq::hasDataBlock(blockReq) );
+            BlockReq::transformBlockRequestToCommitModified(blockReq);
+            ::sendFileIoRequestToServer( blockReq );
+            break;
+
+        case BlockReq::BLOCK_STATE_ERROR:
+            assert( !BlockReq::hasDataBlock(blockReq) );
             freeFileIoRequest( blockReq );
             break;
         }
@@ -183,7 +256,7 @@ class FileIoReadStreamWrapper { // Object-oriented wrapper for a read stream
         while (prefetchQueueHead_()) {
             FileIoRequest *blockReq = prefetchQueue_front();
             prefetchQueue_pop_front();
-            flushReadBlock( blockReq );
+            flushBlock( blockReq );
         }
 
         prefetchQueueTail_() = 0;
@@ -197,43 +270,44 @@ class FileIoReadStreamWrapper { // Object-oriented wrapper for a read stream
     }
 
     // should only be called after the stream has been opened and before it is closed
-    bool receiveOneBlock( )
+    bool receiveOneBlock()
     {
         if (FileIoRequest *r=resultQueue().pop())
         {
-            assert( r->requestType == FileIoRequest::READ_BLOCK );
+            assert( BlockReq::isAcquireBlockRequest(r) );
 
-            if (blockReq_isDiscarded(r))
+            if (BlockReq::isDiscarded(r))
             {
                 // the block was discarded. i.e. is no longer in the prefetch block queue
 
                 if (r->resultStatus==NOERROR)
                 {
-                    releaseReadBlockToServer( r );
+                    BlockReq::transformBlockRequestToReleaseUnmodified(r);
+                    ::sendFileIoRequestToServer(r);
                 }
                 else
                 {
-                    // errors on discarded blocks don't affect the stream state
-                    assert( r->readBlock.dataBlock == 0 );
-                    freeFileIoRequest( r );
+                    assert( BlockReq::hasDataBlock(r) );
+                    ::freeFileIoRequest(r);
+                    // (errors on discarded blocks don't affect the stream state)
                 }
 
-                // NOTE: discarded blocks do not count against FileIoReadStream_waitingForBlocksCount_
+                // (discarded blocks do not count against waitingForBlocksCount__
             }
             else
             {
                 if (--waitingForBlocksCount_() == 0)
-                    state_() = READSTREAM_STATE_OPEN_STREAMING;
+                    state_() = STREAM_STATE_OPEN_STREAMING;
 
                 if (r->resultStatus==NOERROR)
                 {
-                    assert( r->readBlock.dataBlock );
-                    blockReq_state_(r) = READSTREAM_BLOCK_READY;
+                    assert( BlockReq::hasDataBlock(r) );
+                    BlockReq::state_(r) = BlockReq::BLOCK_STATE_READY;
                 }
                 else
                 {
                     // the block is marked as an error. the stream state will switch to error when the client tries to read the block
-                    blockReq_state_(r) = READSTREAM_BLOCK_ERROR;                
+                    BlockReq::state_(r) = BlockReq::BLOCK_STATE_ERROR;
                 }
             }
 
@@ -244,7 +318,7 @@ class FileIoReadStreamWrapper { // Object-oriented wrapper for a read stream
     }
 
 public:
-    FileIoReadStreamWrapper( READSTREAM *fp )
+    FileIoStreamWrapper( READSTREAM *fp )
         : resultQueueReq_( static_cast<FileIoRequest*>(fp) ) {}
 
     READSTREAM* handle() { return resultQueueReq_; }
@@ -271,7 +345,7 @@ public:
         stream.resultQueue().init();
 
         stream.openFileReqLink_() = openFileReq;
-        stream.state_() = READSTREAM_STATE_OPENING;
+        stream.state_() = STREAM_STATE_OPENING;
         stream.error_() = 0;
         stream.prefetchQueueHead_() = 0;
         stream.prefetchQueueTail_() = 0;
@@ -297,7 +371,7 @@ public:
     {
         // (Don't poll state, just dispose current state)
 
-        if (state_()==READSTREAM_STATE_OPENING)
+        if (state_()==STREAM_STATE_OPENING)
         {
             // Still waiting for OPEN_FILE to return. Send the result queue to the server for cleanup.
             openFileReqLink_() = 0;
@@ -356,18 +430,19 @@ public:
     {
         assert( pos >= 0 );
 
-        if (state_() == READSTREAM_STATE_OPENING || state_() == READSTREAM_STATE_ERROR)
+        if (state_() == STREAM_STATE_OPENING || state_() == STREAM_STATE_ERROR)
             return -1;
 
         // Straight-forward implementation of seek: dump all blocks from the prefetch queue, 
         // then request the needed blocks.
         // A more optimised version would retain any needed blocks from the current prefetch queue.
 
+        flushPrefetchQueue();
+
         // FIXME HACK: hardcode prefetch queue length. 
         // The prefetch queue length should be computed from the stream data rate and the 
         // desired prefetch buffering length (in seconds).
-        flushPrefetchQueue();
-
+        
         const int prefetchQueueBlockCount = 20;
 
         // Request blocks on block-size-aligned boundaries
@@ -381,52 +456,52 @@ public:
 
         FileIoRequest *firstBlockReq = allocFileIoRequest();
         if (!firstBlockReq) {
-            state_() = READSTREAM_STATE_ERROR;
+            state_() = STREAM_STATE_ERROR;
             return -1;
         }
 
-        initReadBlockRequest( firstBlockReq, blockFilePositionBytes );
+        BlockReq::initAcquireBlockRequest( firstBlockReq, openFileReq()->openFile.fileHandle, blockFilePositionBytes, resultQueueReq_ );
 
-        blockReq_bytesCopied_(firstBlockReq) = pos - blockFilePositionBytes; // compensate for block-size-aligned request
+        BlockReq::bytesCopied_(firstBlockReq) = pos - blockFilePositionBytes; // compensate for block-size-aligned request
+        
         prefetchQueueHead_() = firstBlockReq;
         prefetchQueueTail_() = firstBlockReq;
-        ::sendFileIoRequestToServer(firstBlockReq);
-        resultQueue().incrementExpectedResultCount();
-        ++waitingForBlocksCount_();
+
+        sendBlockRequestToServer(firstBlockReq);
 
         for (int i=1; i < prefetchQueueBlockCount; ++i) {
             FileIoRequest *readBlockReq = allocFileIoRequest();
             if (!readBlockReq) {
                 // fail. couldn't allocate request
-                state_() = READSTREAM_STATE_ERROR;
+                state_() = STREAM_STATE_ERROR;
                 return -1;
             }
 
-            initLinkAndSendSequentialReadBlockRequest( readBlockReq );
+            initLinkAndSendSequentialBlockRequest( readBlockReq );
         }
 
-        state_() = READSTREAM_STATE_OPEN_BUFFERING;
+        state_() = STREAM_STATE_OPEN_BUFFERING;
 
         return 0;
     }
 
-    size_t read( void *dest, size_t itemSize, size_t itemCount )
+    size_t read( void *dest, size_t itemSize, size_t itemCount ) // TODO: rename ioCopy. for a read stream this is read(), for a write stream this is write()
     {
         pollState(); // always process at least one expected reply per read call
 
         switch (state_())
         {
-        case READSTREAM_STATE_OPENING:
+        case STREAM_STATE_OPENING:
             return 0;
             break;
 
-        case READSTREAM_STATE_OPEN_IDLE:
-        case READSTREAM_STATE_OPEN_EOF:
+        case STREAM_STATE_OPEN_IDLE:
+        case STREAM_STATE_OPEN_EOF:
             return 0;
             break;
 
-        case READSTREAM_STATE_OPEN_BUFFERING:
-        case READSTREAM_STATE_OPEN_STREAMING:
+        case STREAM_STATE_OPEN_BUFFERING:
+        case STREAM_STATE_OPEN_STREAMING:
             {
                 int8_t *destBytesPtr = (int8_t*)dest;
                 size_t totalBytesToCopyToDest = itemSize * itemCount;
@@ -446,48 +521,37 @@ public:
                     // BUFFERING to STREAMING, (2) it lessens the likelihood of a buffer under-run. 
 
                     // process replies until the block is not pending or there are no more replies
-                    while (blockReq_state_(frontBlockReq) == READSTREAM_BLOCK_PENDING) {
+                    while (blockReq_state_(frontBlockReq) == BLOCK_STATE_PENDING) {
                         if (!receiveOneBlock())
                             break;
                     }
 #endif
 
-                    if (blockReq_state_(frontBlockReq) == READSTREAM_BLOCK_READY)
+                    if (BlockReq::state_(frontBlockReq) == BlockReq::BLOCK_STATE_READY)
                     {
                         // copy data to dest
 
-                        size_t bytesCopiedFromBlockSoFar = blockReq_bytesCopied_(frontBlockReq);
-                        size_t bytesRemainingInBlock = frontBlockReq->readBlock.dataBlock->validCountBytes - bytesCopiedFromBlockSoFar;
                         size_t bytesRemainingToCopyToDest = totalBytesToCopyToDest - bytesCopiedToDestSoFar;
-                        size_t n = std::min<size_t>( bytesRemainingInBlock, bytesRemainingToCopyToDest );
 
-                        std::memcpy(destBytesPtr, static_cast<int8_t*>(frontBlockReq->readBlock.dataBlock->data)+bytesCopiedFromBlockSoFar, n);
+                        size_t bytesCopied = 0;
+                        BlockReq::CopyStatus copyStatus = BlockReq::copyBlockData(frontBlockReq, destBytesPtr, bytesRemainingToCopyToDest, itemSize, &bytesCopied);
 
-                        bytesCopiedToDestSoFar += n;
-                        bytesCopiedFromBlockSoFar += n;
-                        bytesRemainingInBlock -= n;
-                        assert( bytesRemainingInBlock == 0 || bytesRemainingInBlock >= itemSize ); // HACK: assume that itemSize divides block size, otherwise we need to deal with items overlapping blocks
-                        blockReq_bytesCopied_(frontBlockReq) = bytesCopiedFromBlockSoFar;
+                        destBytesPtr += bytesCopied;
+                        bytesCopiedToDestSoFar += bytesCopied;
 
-                        if (bytesRemainingInBlock==0)
-                        {
-                            if (frontBlockReq->readBlock.isAtEof) {
-
-                                state_() = READSTREAM_STATE_OPEN_EOF;
-                                return bytesCopiedToDestSoFar / itemSize;
-                            }
-                            else
+                        switch (copyStatus) {
+                        case BlockReq::AT_BLOCK_END:
                             {
                                 // request and link the next block...
                                 FileIoRequest *readBlockReq = allocFileIoRequest();
                                 if (!readBlockReq) {
                                     // fail. couldn't allocate request
-                                    state_() = READSTREAM_STATE_ERROR;
+                                    state_() = STREAM_STATE_ERROR;
                                     return bytesCopiedToDestSoFar / itemSize;
                                 }
 
                                 // issue next block request, link it on to the tail of the prefetch queue
-                                initLinkAndSendSequentialReadBlockRequest( readBlockReq );
+                                initLinkAndSendSequentialBlockRequest( readBlockReq );
 
                                 // unlink the old block...
 
@@ -496,16 +560,24 @@ public:
                                 // linking to an empty queue.
 
                                 prefetchQueue_pop_front(); // advance head to next block
-                                flushReadBlock( frontBlockReq ); // send the old block back to the server
+                                flushBlock( frontBlockReq ); // send the old block back to the server
                             }
+                            break;
+                        case BlockReq::AT_FINAL_BLOCK_END:
+                            state_() = STREAM_STATE_OPEN_EOF;
+                            return bytesCopiedToDestSoFar / itemSize;
+                            break;
+                        case BlockReq::CAN_CONTINUE:
+                            /* NOTHING */
+                            break;
                         }
                     }
                     else
                     {
-                        if (blockReq_state_(frontBlockReq) == READSTREAM_BLOCK_ERROR)
-                            state_() = READSTREAM_STATE_ERROR;
+                        if (BlockReq::state_(frontBlockReq) == BlockReq::BLOCK_STATE_ERROR)
+                            state_() = STREAM_STATE_ERROR;
                         else
-                            state_() = READSTREAM_STATE_OPEN_BUFFERING;
+                            state_() = STREAM_STATE_OPEN_BUFFERING;
 
                         // head block is pending, or we've entered the error state
                         return bytesCopiedToDestSoFar / itemSize;
@@ -516,7 +588,7 @@ public:
             }
             break;
 
-        case READSTREAM_STATE_ERROR:
+        case STREAM_STATE_ERROR:
             return 0;
             break;
         }
@@ -528,7 +600,7 @@ public:
     {
         if (resultQueue().expectedResultCount() > 0)
         {
-            if (state_()==READSTREAM_STATE_OPENING)
+            if (state_()==STREAM_STATE_OPENING)
             {
                 if (FileIoRequest *r=resultQueue().pop())
                 {
@@ -541,13 +613,13 @@ public:
                     {
                         assert( r->openFile.fileHandle != 0 );
 
-                        state_() = READSTREAM_STATE_OPEN_IDLE;
+                        state_() = STREAM_STATE_OPEN_IDLE;
                         // NOTE: in principle we could seek here. at the moment we require the client to poll for idle.
                     }
                     else
                     {
                         error_() = r->resultStatus;
-                        state_() = READSTREAM_STATE_ERROR;
+                        state_() = STREAM_STATE_ERROR;
                     }
 
                     // Leave openFileReq linked to the structure, even if there's an error
@@ -555,11 +627,11 @@ public:
             }
             else
             {
-                assert( state_()==READSTREAM_STATE_OPEN_IDLE 
-                    || state_()==READSTREAM_STATE_OPEN_EOF
-                    || state_()==READSTREAM_STATE_OPEN_BUFFERING 
-                    || state_()==READSTREAM_STATE_OPEN_STREAMING
-                    || state_()==READSTREAM_STATE_ERROR );
+                assert( state_()==STREAM_STATE_OPEN_IDLE 
+                    || state_()==STREAM_STATE_OPEN_EOF
+                    || state_()==STREAM_STATE_OPEN_BUFFERING 
+                    || state_()==STREAM_STATE_OPEN_STREAMING
+                    || state_()==STREAM_STATE_ERROR );
 
                 receiveOneBlock();
             }
@@ -573,6 +645,8 @@ public:
         return error_();
     }
 };
+
+typedef FileIoStreamWrapper<ReadBlockRequestBehavior> FileIoReadStreamWrapper;
 
 
 READSTREAM *FileIoReadStream_open( SharedBuffer *path, FileIoRequest::OpenMode openMode )
@@ -618,35 +692,35 @@ void FileIoReadStream_test()
     path->release();
     assert( fp != 0 );
 
-    while (FileIoReadStream_pollState(fp) == READSTREAM_STATE_OPENING) {
+    while (FileIoReadStream_pollState(fp) == STREAM_STATE_OPENING) {
         printf(".");
         Sleep(10);
     }
 
     printf( "\ndone.\n" );
 
-    assert( FileIoReadStream_pollState(fp) == READSTREAM_STATE_OPEN_IDLE );
+    assert( FileIoReadStream_pollState(fp) == STREAM_STATE_OPEN_IDLE );
 
     printf( "seeking " );
 
     FileIoReadStream_seek(fp, 0);
 
-    while (FileIoReadStream_pollState(fp) == READSTREAM_STATE_OPEN_BUFFERING) {
+    while (FileIoReadStream_pollState(fp) == STREAM_STATE_OPEN_BUFFERING) {
         printf(".");
         Sleep(10);
     }
     
-    assert( FileIoReadStream_pollState(fp) == READSTREAM_STATE_OPEN_STREAMING );
+    assert( FileIoReadStream_pollState(fp) == STREAM_STATE_OPEN_STREAMING );
 
     printf( "\ndone.\n" );
 
     printf( "reading:\n" );
 
-    while (FileIoReadStream_pollState(fp) == READSTREAM_STATE_OPEN_STREAMING || FileIoReadStream_pollState(fp) == READSTREAM_STATE_OPEN_BUFFERING) {
+    while (FileIoReadStream_pollState(fp) == STREAM_STATE_OPEN_STREAMING || FileIoReadStream_pollState(fp) == STREAM_STATE_OPEN_BUFFERING) {
 
         /*
         // make sure we're always streaming:
-        while (FileIoReadStream_pollState(fp) == READSTREAM_STATE_OPEN_BUFFERING) {
+        while (FileIoReadStream_pollState(fp) == STREAM_STATE_OPEN_BUFFERING) {
             printf(".");
             Sleep(10);
         }
@@ -660,7 +734,7 @@ void FileIoReadStream_test()
         }
     }
 
-    assert( FileIoReadStream_pollState(fp) == READSTREAM_STATE_OPEN_EOF );
+    assert( FileIoReadStream_pollState(fp) == STREAM_STATE_OPEN_EOF );
 
     printf( "\nclosing.\n" );
 

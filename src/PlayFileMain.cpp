@@ -27,8 +27,8 @@
 #include "FileIoReadStream.h" // rename FileIoReadStream?
 
 #define SAMPLE_RATE         (44100)
-#define FRAMES_PER_BUFFER   (64)
-
+//#define FRAMES_PER_BUFFER   (64)
+#define FRAMES_PER_BUFFER       (67) // use a prime number to flush out bugs in buffer copying code
 #ifndef M_PI
 #define M_PI  (3.14159265)
 #endif
@@ -91,12 +91,12 @@ static int audioCallback( const void *inputBuffer, void *outputBuffer,
         short temp[FRAMES_PER_BUFFER * 2]; // stereo 16 bit file data
 
         FileIoReadStreamState streamState = FileIoReadStream_pollState(data->fileReadStream);
-        if (streamState==READSTREAM_STATE_OPEN_IDLE) {
+        if (streamState==STREAM_STATE_OPEN_IDLE) {
 
             // once the file is open, seek to play from start
             FileIoReadStream_seek(data->fileReadStream,0);
 
-        } else if (streamState==READSTREAM_STATE_OPEN_STREAMING) { // (don't output in BUFFERING state)
+        } else if (streamState==STREAM_STATE_OPEN_STREAMING) { // (don't output in BUFFERING state)
 
             size_t framesRead = FileIoReadStream_read( temp, sizeof(short)*2, FRAMES_PER_BUFFER, data->fileReadStream );
         
@@ -110,7 +110,7 @@ static int audioCallback( const void *inputBuffer, void *outputBuffer,
                 *out++ = *p++ * gain;
             }
         
-        } else if (streamState==READSTREAM_STATE_ERROR || streamState==READSTREAM_STATE_OPEN_EOF) {
+        } else if (streamState==STREAM_STATE_ERROR || streamState==STREAM_STATE_OPEN_EOF) {
             FileIoReadStream_close(data->fileReadStream);
             data->fileReadStream = 0;
         }

@@ -40,12 +40,12 @@ size_t FileIoReadStream_read( void *dest, size_t itemSize, size_t itemCount, REA
 enum FileIoReadStreamState {
     // stream states
 
-    READSTREAM_STATE_OPENING = FileIoRequest::CLIENT_USE_BASE_,
-    READSTREAM_STATE_OPEN_IDLE,
-    READSTREAM_STATE_OPEN_EOF,
-    READSTREAM_STATE_OPEN_BUFFERING, 
-    READSTREAM_STATE_OPEN_STREAMING, 
-    READSTREAM_STATE_ERROR,
+    STREAM_STATE_OPENING = FileIoRequest::CLIENT_USE_BASE_,
+    STREAM_STATE_OPEN_IDLE,
+    STREAM_STATE_OPEN_EOF,
+    STREAM_STATE_OPEN_BUFFERING,
+    STREAM_STATE_OPEN_STREAMING,
+    STREAM_STATE_ERROR,
 };
 
 FileIoReadStreamState FileIoReadStream_pollState( READSTREAM *fp );

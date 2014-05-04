@@ -34,7 +34,7 @@
 //#define IO_USE_CONSTANT_TIME_RESULT_POLLING
 
 
-struct BlockRequestBehavior {
+struct BlockRequestBehavior { // behavior with implementation common to read and write requests
 
     // when not in-flight, the request type field represents the state of the block request.
     // the acquire request type is mapped to the PENDING state.
@@ -51,22 +51,22 @@ struct BlockRequestBehavior {
     static int& state_(FileIoRequest *r) { return r->requestType; }
     static size_t& bytesCopied_(FileIoRequest *r) { return r->clientInt; }
 
-    // predicates
-
-    static bool isAcquireBlockRequest(FileIoRequest *r) { return (r->requestType == FileIoRequest::READ_BLOCK); }
-    static bool hasDataBlock(FileIoRequest *r) { return (r->readBlock.dataBlock != 0); }
-
     // fields
 
     static bool isDiscarded(FileIoRequest *r) { return bytesCopied_(r)==-1; }
     static void setDiscarded(FileIoRequest *r) { bytesCopied_(r)=-1; }
-
-    static size_t filePosition(FileIoRequest *r) { return r->readBlock.filePosition; }
-
 };
 
 
 struct ReadBlockRequestBehavior : public BlockRequestBehavior {
+
+    // predicates
+
+    static bool isAcquireBlockRequest(FileIoRequest *r) { return (r->requestType == FileIoRequest::READ_BLOCK); }
+    static DataBlock *dataBlock_(FileIoRequest *r) { return r->readBlock.dataBlock; }
+    static bool hasDataBlock(FileIoRequest *r) { return (dataBlock_(r) != 0); }
+    static size_t filePosition(FileIoRequest *r) { return r->readBlock.filePosition; }
+
 
     // In abstract terms, data blocks are /acquired/ from the server and /released/ back to the server.
     // For read-only streams this means READ_BLOCK --> RELEASE_READ_BLOCK
@@ -113,25 +113,25 @@ struct ReadBlockRequestBehavior : public BlockRequestBehavior {
 
     typedef void * user_items_ptr_t; // will be const for write streams
 
-    // TODO: change interface to use items rather than bytes: maxItemsToCopy, itemSize, itemsCopiedResult
-    static CopyStatus copyBlockData( FileIoRequest *blockReq, user_items_ptr_t userItemsPtr, size_t maxBytesToCopy, size_t itemSize, size_t *bytesCopiedResult )
+    static CopyStatus copyBlockData( FileIoRequest *blockReq, user_items_ptr_t userItemsPtr, size_t maxItemsToCopy, size_t itemSizeBytes, size_t *itemsCopiedResult )
     {
         size_t blockBytesCopiedSoFar = bytesCopied_(blockReq);
-        size_t bytesRemainingInBlock = blockReq->readBlock.dataBlock->validCountBytes - blockBytesCopiedSoFar;
+        size_t bytesRemainingInBlock = dataBlock_(blockReq)->validCountBytes - blockBytesCopiedSoFar;
+        size_t wholeItemsRemainingInBlock = bytesRemainingInBlock / itemSizeBytes;
 
-        size_t N = std::min<size_t>( bytesRemainingInBlock, maxBytesToCopy );
+        // Assume that itemSize divides block size, otherwise we need to deal with items overlapping blocks 
+        // and that wouldn't be time-efficient (see NOTE earlier for possible implementation).
+        assert( wholeItemsRemainingInBlock*itemSizeBytes == bytesRemainingInBlock ); 
 
-        std::memcpy(userItemsPtr, static_cast<int8_t*>(blockReq->readBlock.dataBlock->data)+blockBytesCopiedSoFar, N);
+        size_t itemsToCopy = std::min<size_t>(wholeItemsRemainingInBlock, maxItemsToCopy);
+        
+        size_t bytesToCopy = itemsToCopy*itemSizeBytes;
+        std::memcpy(userItemsPtr, static_cast<int8_t*>(dataBlock_(blockReq)->data)+blockBytesCopiedSoFar, bytesToCopy);
+        bytesCopied_(blockReq) += bytesToCopy;
 
-        bytesCopied_(blockReq) += N;
+        *itemsCopiedResult = itemsToCopy;
 
-        *bytesCopiedResult = N;
-
-        // sanity check:
-        bytesRemainingInBlock -= N;
-        assert( bytesRemainingInBlock == 0 || bytesRemainingInBlock >= itemSize ); // HACK: assume that itemSize divides block size, otherwise we need to deal with items overlapping blocks and that wouldn't be time-efficient
-
-        if (bytesRemainingInBlock==0) {
+        if (itemsToCopy==wholeItemsRemainingInBlock) {
             if (blockReq->readBlock.isAtEof)
                 return AT_FINAL_BLOCK_END;
             else
@@ -478,7 +478,7 @@ public:
 
     typedef typename BlockReq::user_items_ptr_t user_items_ptr_t;
 
-    size_t read_or_write( user_items_ptr_t userItemsPtr, size_t itemSize, size_t itemCount ) // for a read stream this is read(), for a write stream this is write()
+    size_t read_or_write( user_items_ptr_t userItemsPtr, size_t itemSizeBytes, size_t itemCount ) // for a read stream this is read(), for a write stream this is write()
     {
         // Always process at least one expected reply per read/write call.
         pollState(); // Updates state based on received replies. e.g. from BUFFERING to STREAMING
@@ -498,7 +498,7 @@ public:
                 return 0; // we're BUFFERING. output nothing
 #else
                 // The call to pollState() above only deals with at most one pending buffer.
-                // Try to transition from BUFFERING to STREAMING as quickly as possible by draining the result queue.
+                // To reduce the latency of transitioning from  BUFFERING to STREAMING we can drain the result queue here.
                 // This is O(N) in the number of expected results.
                 
                 while (receiveOneBlock()) 
@@ -512,13 +512,11 @@ public:
 
         case STREAM_STATE_OPEN_STREAMING:
             {
-                // TODO: switch to working in whole numbers of items here
-
                 int8_t *userBytesPtr = (int8_t*)userItemsPtr;
-                size_t totalBytesToCopy = itemSize * itemCount;
-                size_t bytesCopiedSoFar = 0;
+                const size_t maxItemsToCopy = itemCount;
+                size_t itemsCopiedSoFar = 0;
 
-                while (bytesCopiedSoFar < totalBytesToCopy) {
+                while (itemsCopiedSoFar < maxItemsToCopy) {
                     FileIoRequest *frontBlockReq = prefetchQueue_front();
                     assert( frontBlockReq != 0 );
 
@@ -527,8 +525,7 @@ public:
                     // O(n) in the maximum number of expected replies.
                     // Since we always poll at least one block per read/write operation (call to 
                     // pollState() above), the following loop is not strictly necessary.
-                    // It serves two purposes: (1) it reduces the latency of transitioning from 
-                    // BUFFERING to STREAMING, (2) it lessens the likelihood of a buffer underrun. 
+                    // It lessens the likelihood of a buffer underrun. 
 
                     // Process replies until the front block is not pending or there are no more replies
                     while (BlockReq::state_(frontBlockReq) == BlockReq::BLOCK_STATE_PENDING) {
@@ -540,13 +537,13 @@ public:
                     if (BlockReq::state_(frontBlockReq) == BlockReq::BLOCK_STATE_READY) {
                         // copy data to/from userItemsPtr and the front block in the prefetch queue
 
-                        size_t bytesRemainingToCopy = totalBytesToCopy - bytesCopiedSoFar;
+                        size_t itemsRemainingToCopy = maxItemsToCopy - itemsCopiedSoFar;
 
-                        size_t bytesCopied = 0;
-                        BlockReq::CopyStatus copyStatus = BlockReq::copyBlockData(frontBlockReq, userBytesPtr, bytesRemainingToCopy, itemSize, &bytesCopied);
+                        size_t itemsCopied = 0;
+                        BlockReq::CopyStatus copyStatus = BlockReq::copyBlockData(frontBlockReq, userBytesPtr, itemsRemainingToCopy, itemSizeBytes, &itemsCopied);
 
-                        userBytesPtr += bytesCopied;
-                        bytesCopiedSoFar += bytesCopied;
+                        userBytesPtr += itemsCopied * itemSizeBytes;
+                        itemsCopiedSoFar += itemsCopied;
 
                         switch (copyStatus) {
                         case BlockReq::AT_BLOCK_END:
@@ -556,11 +553,11 @@ public:
                                 if (!readBlockReq) {
                                     // fail. couldn't allocate request
                                     state_() = STREAM_STATE_ERROR;
-                                    return bytesCopiedSoFar / itemSize;
+                                    return itemsCopiedSoFar;
                                 }
 
                                 // issue next block request, link it on to the tail of the prefetch queue
-                                initLinkAndSendSequentialBlockRequest( readBlockReq );
+                                initLinkAndSendSequentialBlockRequest(readBlockReq);
 
                                 // unlink the old block...
 
@@ -569,7 +566,7 @@ public:
                                 // linking to an empty queue.
 
                                 prefetchQueue_pop_front(); // advance head to next block
-                                flushBlock( frontBlockReq ); // send the old block back to the server
+                                flushBlock(frontBlockReq); // send the old block back to the server
 
                                 // try to receive one of the blocks requested earlier...
                                 receiveOneBlock();
@@ -577,7 +574,7 @@ public:
                             break;
                         case BlockReq::AT_FINAL_BLOCK_END:
                             state_() = STREAM_STATE_OPEN_EOF;
-                            return bytesCopiedSoFar / itemSize;
+                            return itemsCopiedSoFar;
                             break;
                         case BlockReq::CAN_CONTINUE:
                             /* NOTHING */
@@ -590,11 +587,12 @@ public:
                             state_() = STREAM_STATE_OPEN_BUFFERING;
 
                         // head block is pending, or we've entered the error state
-                        return bytesCopiedSoFar / itemSize;
+                        return itemsCopiedSoFar;
                     }
                 }
 
-                return itemCount;
+                assert( itemsCopiedSoFar == maxItemsToCopy );
+                return maxItemsToCopy;
             }
             break;
         }

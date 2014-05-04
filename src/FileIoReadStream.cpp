@@ -310,10 +310,7 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
 public:
     FileIoStreamWrapper( READSTREAM *fp )
         : resultQueueReq_( static_cast<FileIoRequest*>(fp) ) {}
-
-    READSTREAM* handle() { return resultQueueReq_; }
-
-
+    
     static READSTREAM* open( SharedBuffer *path, FileIoRequest::OpenMode openMode )
     {
         // Allocate two requests. Return 0 if allocation fails.
@@ -351,10 +348,10 @@ public:
         openFileReq->openFile.fileHandle = IO_INVALID_FILE_HANDLE;
         openFileReq->openFile.resultQueue = resultQueueReq;
 
-        ::sendFileIoRequestToServer( openFileReq );
+        ::sendFileIoRequestToServer(openFileReq);
         stream.resultQueue().incrementExpectedResultCount();
 
-        return stream.handle();
+        return static_cast<READSTREAM*>(resultQueueReq);
     }
 
     void close()
@@ -366,7 +363,7 @@ public:
             openFileReqLink_() = 0;
 
             resultQueueReq_->requestType = FileIoRequest::CLEANUP_RESULT_QUEUE;
-            ::sendFileIoRequestToServer( resultQueueReq_ );
+            ::sendFileIoRequestToServer(resultQueueReq_);
             resultQueueReq_ = 0;
         } else {
             // Stream is open. The prefetch queue may contain requests.
@@ -387,9 +384,9 @@ public:
                     FileIoRequest *closeFileReq = openFileReq;
                     closeFileReq->requestType = FileIoRequest::CLOSE_FILE;
                     closeFileReq->closeFile.fileHandle = fileHandle;
-                    ::sendFileIoRequestToServer( closeFileReq );
+                    ::sendFileIoRequestToServer(closeFileReq);
                 } else {
-                    freeFileIoRequest( openFileReq );
+                    freeFileIoRequest(openFileReq);
                 }
             }
 
@@ -398,10 +395,10 @@ public:
             if (resultQueue().expectedResultCount() > 0) {
                 // Send the result queue to the server for cleanup
                 resultQueueReq_->requestType = FileIoRequest::CLEANUP_RESULT_QUEUE;
-                ::sendFileIoRequestToServer( resultQueueReq_ );
+                ::sendFileIoRequestToServer(resultQueueReq_);
                 resultQueueReq_ = 0;
             } else {
-                freeFileIoRequest( resultQueueReq_ );
+                freeFileIoRequest(resultQueueReq_);
                 resultQueueReq_ = 0;
             }
         }

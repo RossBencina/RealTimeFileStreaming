@@ -34,7 +34,7 @@
 //#define IO_USE_CONSTANT_TIME_RESULT_POLLING
 
 
-struct ReadBlockRequestBehavior {
+struct BlockRequestBehavior {
 
     // when not in-flight, the request type field represents the state of the block request.
     // the acquire request type is mapped to the PENDING state.
@@ -44,7 +44,6 @@ struct ReadBlockRequestBehavior {
         BLOCK_STATE_MODIFIED, // not used for read streams
         BLOCK_STATE_ERROR
     };
-
 
     // L-value aliases. Map/alias request fields to our use of them.
 
@@ -56,8 +55,6 @@ struct ReadBlockRequestBehavior {
 
     static bool isAcquireBlockRequest(FileIoRequest *r) { return (r->requestType == FileIoRequest::READ_BLOCK); }
     static bool hasDataBlock(FileIoRequest *r) { return (r->readBlock.dataBlock != 0); }
-    
-    //static bool isLastBlock(FileIoRequest *r) { return r->readBlock.isAtEof; } // used to signal that playback has reached end of file. not use for recording, should always return true there.
 
     // fields
 
@@ -66,6 +63,10 @@ struct ReadBlockRequestBehavior {
 
     static size_t filePosition(FileIoRequest *r) { return r->readBlock.filePosition; }
 
+};
+
+
+struct ReadBlockRequestBehavior : public BlockRequestBehavior {
 
     // In abstract terms, data blocks are /acquired/ from the server and /released/ back to the server.
     // For read-only streams this means READ_BLOCK --> RELEASE_READ_BLOCK
@@ -96,7 +97,7 @@ struct ReadBlockRequestBehavior {
 
     static void transformToCommitModified( FileIoRequest *readBlockReq )
     {
-        assert(false);
+        assert(false); // read blocks can't be committed, and won't be. because we never mark blocks as modified
     }
 
 
@@ -104,14 +105,15 @@ struct ReadBlockRequestBehavior {
 
     enum CopyStatus { CAN_CONTINUE, AT_BLOCK_END, AT_FINAL_BLOCK_END };
     /*
-        TODO REVIEW if we wanted to support items that overlap blocks we could
-        introduce an extra status: NEED_NEXT_BLOCK that we would return if the 
+        NOTE if we wanted to support items that span multiple blocks we could
+        introduce an extra status: NEED_NEXT_BLOCK that we would return if the
         next block is pending but we needed data from it to copy an item.
         NEED_NEXT_BLOCK would cause the wrapper to go into the buffering state.
     */
 
     typedef void * user_items_ptr_t; // will be const for write streams
 
+    // TODO: change interface to use items rather than bytes: maxItemsToCopy, itemSize, itemsCopiedResult
     static CopyStatus copyBlockData( FileIoRequest *blockReq, user_items_ptr_t userItemsPtr, size_t maxBytesToCopy, size_t itemSize, size_t *bytesCopiedResult )
     {
         size_t blockBytesCopiedSoFar = bytesCopied_(blockReq);

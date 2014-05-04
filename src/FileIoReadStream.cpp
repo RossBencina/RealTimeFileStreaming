@@ -320,6 +320,32 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
         return false;
     }
 
+    bool advanceToNextBlock()
+    {
+        // request and link the next block...
+        FileIoRequest *readBlockReq = allocFileIoRequest();
+        if (!readBlockReq) {
+            // fail. couldn't allocate request
+            state_() = STREAM_STATE_ERROR;
+            return false;
+        }
+
+        // issue next block request, link it on to the tail of the prefetch queue
+        initLinkAndSendSequentialBlockRequest(readBlockReq);
+
+        // unlink the old block...
+
+        // Notice that we link the new request on the back of the prefetch queue before unlinking 
+        // the old one off the front, so there is no chance of having to deal with the special case of 
+        // linking to an empty queue.
+
+        FileIoRequest *frontBlockReq = prefetchQueue_front();
+        prefetchQueue_pop_front(); // advance head to next block
+        flushBlock(frontBlockReq); // send the old block back to the server
+
+        return true;
+    }
+
 public:
     FileIoStreamWrapper( READSTREAM *fp )
         : resultQueueReq_( static_cast<FileIoRequest*>(fp) ) {}
@@ -547,30 +573,13 @@ public:
 
                         switch (copyStatus) {
                         case BlockReq::AT_BLOCK_END:
-                            {
-                                // request and link the next block...
-                                FileIoRequest *readBlockReq = allocFileIoRequest();
-                                if (!readBlockReq) {
-                                    // fail. couldn't allocate request
-                                    state_() = STREAM_STATE_ERROR;
-                                    return itemsCopiedSoFar;
-                                }
-
-                                // issue next block request, link it on to the tail of the prefetch queue
-                                initLinkAndSendSequentialBlockRequest(readBlockReq);
-
-                                // unlink the old block...
-
-                                // Notice that we link the new request on the back of the prefetch queue before unlinking 
-                                // the old one off the front, so there is no chance of having to deal with the special case of 
-                                // linking to an empty queue.
-
-                                prefetchQueue_pop_front(); // advance head to next block
-                                flushBlock(frontBlockReq); // send the old block back to the server
-
-                                // try to receive one of the blocks requested earlier...
-                                receiveOneBlock();
-                            }
+                            if (!advanceToNextBlock())
+                                return itemsCopiedSoFar;
+                            // To reduce latency on streaming reads we could re-poll here.
+                            // Retire one pending block. Useful if itemCount > items per block.
+                            // NOTE if the server can run faster than the stream, and read_or_write() is called with
+                            // a very large item count, we should process all results here.
+                            // receiveOneBlock();
                             break;
                         case BlockReq::AT_FINAL_BLOCK_END:
                             state_() = STREAM_STATE_OPEN_EOF;
@@ -580,13 +589,12 @@ public:
                             /* NOTHING */
                             break;
                         }
+                    } else if(BlockReq::state_(frontBlockReq) == BlockReq::BLOCK_STATE_PENDING) {
+                        state_() = STREAM_STATE_OPEN_BUFFERING;
+                        return itemsCopiedSoFar;
                     } else {
-                        if (BlockReq::state_(frontBlockReq) == BlockReq::BLOCK_STATE_ERROR)
-                            state_() = STREAM_STATE_ERROR;
-                        else
-                            state_() = STREAM_STATE_OPEN_BUFFERING;
-
-                        // head block is pending, or we've entered the error state
+                        assert( BlockReq::state_(frontBlockReq) == BlockReq::BLOCK_STATE_ERROR );
+                        state_() = STREAM_STATE_ERROR;
                         return itemsCopiedSoFar;
                     }
                 }

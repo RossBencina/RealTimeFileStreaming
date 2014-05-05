@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
     
     // Play data from a 16-bit stereo headerless file specified by the following path. sample rate should be SAMPLE_RATE.
     //const char *playbackFilePath = "C:\\Users\\Ross\\Desktop\\07_Hungry_Ghost.dat";
-    const char *playbackFilePath = "C:\\RealTimeSafeStreamingFileIoExample\\RealTimeSafeStreamingFileIoExample\\164718__bradovic__piano.dat";
+    const char *playbackFilePath = "C:\\RealTimeSafeStreamingFileIoExample\\RealTimeSafeStreamingFileIoExample\\171326__bradovic__piano-improvisation.dat";
 
     // Record to a temp file:
     const char *recordTestFilePath = "C:\\Users\\Ross\\Desktop\\FileStreamingTestRecording.dat";

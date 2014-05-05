@@ -501,7 +501,7 @@ TODO:
         StreamState ReadStream_getState( ReadStream *s );
         size_t ReadStream_read( ReadStream *s, void *dest, size_t countBytes );
 
-        o- optional, later: support seeking
+        x- optional, later: support seeking
 
     x- example write stream routines (all asynchronous O(1) or near to)
         x- allocate a stream

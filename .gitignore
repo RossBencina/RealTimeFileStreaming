@@ -71,3 +71,8 @@ bld/
 
 # Ignore Mac specific files
 .DS_Store
+
+# Xcode
+
+xcuserdata/
+

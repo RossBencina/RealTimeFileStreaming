@@ -28,9 +28,6 @@
     <ClInclude Include="..\..\..\src\DataBlock.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\FileIoReadStream.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\FileIoRequest.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -127,11 +124,11 @@
     <ClInclude Include="..\..\..\..\portaudio\src\os\win\pa_win_wdmks_utils.h">
       <Filter>PortAudio\os-win</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\FileIoStreams.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\FileIoReadStream.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\FileIoServer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -191,6 +188,12 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\QueueWorld\src\QwNodePool.cpp">
       <Filter>QueueWorld</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\FileIoReadStream_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\FileIoStreams.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

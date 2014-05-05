@@ -24,7 +24,7 @@
 #include "portaudio.h"
 
 #include "FileIoServer.h"
-#include "FileIoReadStream.h" // rename FileIoReadStream?
+#include "FileIoStreams.h"
 
 #define SAMPLE_RATE         (44100)
 //#define FRAMES_PER_BUFFER   (64)

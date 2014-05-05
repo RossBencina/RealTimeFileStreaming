@@ -19,8 +19,8 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 */
-#ifndef INCLUDED_FILEIOREADSTREAM_H
-#define INCLUDED_FILEIOREADSTREAM_H
+#ifndef INCLUDED_FILEIOSTREAMS_H
+#define INCLUDED_FILEIOSTREAMS_H
 
 #include "FileIoRequest.h"
 #include "SharedBuffer.h"
@@ -55,4 +55,4 @@ int FileIoReadStream_getError( READSTREAM *fp ); // returns the error code. only
 void FileIoReadStream_test();
 
 
-#endif /* INCLUDED_FILEIOREADSTREAM_H */
+#endif /* INCLUDED_FILEIOSTREAMS_H */

@@ -404,6 +404,7 @@ HANDLE serverMailboxEvent_;
 HANDLE serverThreadHandle_;
 #else
 // google "mach semaphores amit singh" http://books.google.com.au/books?id=K8vUkpOXhN4C&pg=PA1219
+// and "OS X Kernel Programming Guide semaphores" https://developer.apple.com/library/mac/documentation/Darwin/Conceptual/KernelProgramming/synchronization/synchronization.html
 semaphore_t serverMailboxSemaphore_;
 pthread_t serverThread_;
 #endif

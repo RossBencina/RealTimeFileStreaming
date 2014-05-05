@@ -51,7 +51,7 @@ struct BlockRequestBehavior { // behavior with implementation common to read and
     static int& state_(FileIoRequest *r) { return r->requestType; }
     static size_t& bytesCopied_(FileIoRequest *r) { return r->clientInt; }
 
-    // fields
+    // predicates
 
     static bool isDiscarded(FileIoRequest *r) { return bytesCopied_(r)==-1; }
     static void setDiscarded(FileIoRequest *r) { bytesCopied_(r)=-1; }
@@ -60,17 +60,21 @@ struct BlockRequestBehavior { // behavior with implementation common to read and
 
 struct ReadBlockRequestBehavior : public BlockRequestBehavior {
 
-    // predicates
+    // fields
 
-    static bool isAcquireBlockRequest(FileIoRequest *r) { return (r->requestType == FileIoRequest::READ_BLOCK); }
-    static DataBlock *dataBlock_(FileIoRequest *r) { return r->readBlock.dataBlock; }
-    static bool hasDataBlock(FileIoRequest *r) { return (dataBlock_(r) != 0); }
+    static DataBlock *dataBlock(FileIoRequest *r) { return r->readBlock.dataBlock; }
     static size_t filePosition(FileIoRequest *r) { return r->readBlock.filePosition; }
 
+    // predicates
 
+    static bool hasDataBlock(FileIoRequest *r) { return (dataBlock(r) != 0); }
+    
     // In abstract terms, data blocks are /acquired/ from the server and /released/ back to the server.
-    // For read-only streams this means READ_BLOCK --> RELEASE_READ_BLOCK
-    // For write-only streams this means ALLOCATE_WRITE_BLOCK --> (RELEASE_UNMODIFIED_WRITE_BLOCK | COMMIT_MODIFIED_WRITE_BLOCK)
+    //
+    // For read-only streams this means READ_BLOCK to acquire and RELEASE_READ_BLOCK to release.
+    //
+    // For write-only streams this means ALLOCATE_WRITE_BLOCK to acquire and
+    // (RELEASE_UNMODIFIED_WRITE_BLOCK or COMMIT_MODIFIED_WRITE_BLOCK) to release.
 
     static void initAcquire( FileIoRequest *blockReq, void *fileHandle, size_t pos, FileIoRequest *resultQueueReq )
     {
@@ -116,7 +120,7 @@ struct ReadBlockRequestBehavior : public BlockRequestBehavior {
     static CopyStatus copyBlockData( FileIoRequest *blockReq, user_items_ptr_t userItemsPtr, size_t maxItemsToCopy, size_t itemSizeBytes, size_t *itemsCopiedResult )
     {
         size_t blockBytesCopiedSoFar = bytesCopied_(blockReq);
-        size_t bytesRemainingInBlock = dataBlock_(blockReq)->validCountBytes - blockBytesCopiedSoFar;
+        size_t bytesRemainingInBlock = dataBlock(blockReq)->validCountBytes - blockBytesCopiedSoFar;
         size_t wholeItemsRemainingInBlock = bytesRemainingInBlock / itemSizeBytes;
 
         // Assume that itemSize divides block size, otherwise we need to deal with items overlapping blocks 
@@ -126,7 +130,7 @@ struct ReadBlockRequestBehavior : public BlockRequestBehavior {
         size_t itemsToCopy = std::min<size_t>(wholeItemsRemainingInBlock, maxItemsToCopy);
         
         size_t bytesToCopy = itemsToCopy*itemSizeBytes;
-        std::memcpy(userItemsPtr, static_cast<int8_t*>(dataBlock_(blockReq)->data)+blockBytesCopiedSoFar, bytesToCopy);
+        std::memcpy(userItemsPtr, static_cast<int8_t*>(dataBlock(blockReq)->data)+blockBytesCopiedSoFar, bytesToCopy);
         bytesCopied_(blockReq) += bytesToCopy;
 
         *itemsCopiedResult = itemsToCopy;
@@ -286,7 +290,7 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
     bool receiveOneBlock()
     {
         if (FileIoRequest *r=resultQueue().pop()) {
-            assert( BlockReq::isAcquireBlockRequest(r) );
+            assert( BlockReq::state_(r) == BlockReq::BLOCK_STATE_PENDING );
 
             if (BlockReq::isDiscarded(r)) {
                 // the block was discarded. i.e. is no longer in the prefetch block queue
@@ -335,8 +339,8 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
 
         // unlink the old block...
 
-        // Notice that we link the new request on the back of the prefetch queue before unlinking 
-        // the old one off the front, so there is no chance of having to deal with the special case of 
+        // Notice that we link the new request on the back of the prefetch queue before unlinking
+        // the old one off the front, so there is no chance of having to deal with the special case of
         // linking to an empty queue.
 
         FileIoRequest *frontBlockReq = prefetchQueue_front();
@@ -456,7 +460,7 @@ public:
 
         flushPrefetchQueue();
 
-        // FIXME HACK: hardcode prefetch queue length. 
+        // HACK: Hardcode the prefetch queue length.
         // The prefetch queue length should be computed from the stream data rate and the 
         // desired prefetch buffering length (in seconds).
         
@@ -506,7 +510,14 @@ public:
 
     size_t read_or_write( user_items_ptr_t userItemsPtr, size_t itemSizeBytes, size_t itemCount ) // for a read stream this is read(), for a write stream this is write()
     {
-        // Always process at least one expected reply per read/write call.
+        // Always process at least one expected reply from the server per read/write call by calling pollState().
+        // If read_or_write() reads at most N bytes, and (IO_DATA_BLOCK_DATA_CAPACITY_BYTES/N)
+        // is greater than the maximum result queue length, then this single poll is almost always
+        // sufficient to retire all pending results before then are needed. The conditions where it
+        // isn't sufficient require that the prefetch buffer must be slightly longer than if we
+        // processed all pending replies as soon as they were available (consider the case where
+        // replies arrive in reverse order just before their deadline).
+
         pollState(); // Updates state based on received replies. e.g. from BUFFERING to STREAMING
 
         switch (state_())
@@ -521,9 +532,9 @@ public:
         case STREAM_STATE_OPEN_BUFFERING:
             {
 #if defined(IO_USE_CONSTANT_TIME_RESULT_POLLING)
-                return 0; // we're BUFFERING. output nothing
+                return 0; // We're BUFFERING. Output nothing.
 #else
-                // The call to pollState() above only deals with at most one pending buffer.
+                // The call to pollState() above only deals with at most one pending block.
                 // To reduce the latency of transitioning from  BUFFERING to STREAMING we can drain the result queue here.
                 // This is O(N) in the number of expected results.
                 
@@ -549,9 +560,9 @@ public:
 #if !defined(IO_USE_CONSTANT_TIME_RESULT_POLLING)
                     // Last-ditch effort to determine whether the front block has been returned.
                     // O(n) in the maximum number of expected replies.
-                    // Since we always poll at least one block per read/write operation (call to 
+                    // Since we always poll at least one block per read/write operation (call to
                     // pollState() above), the following loop is not strictly necessary.
-                    // It lessens the likelihood of a buffer underrun. 
+                    // It lessens the likelihood of a buffer underrun.
 
                     // Process replies until the front block is not pending or there are no more replies
                     while (BlockReq::state_(frontBlockReq) == BlockReq::BLOCK_STATE_PENDING) {
@@ -574,12 +585,14 @@ public:
                         switch (copyStatus) {
                         case BlockReq::AT_BLOCK_END:
                             if (!advanceToNextBlock())
-                                return itemsCopiedSoFar;
-                            // To reduce latency on streaming reads we could re-poll here.
-                            // Retire one pending block. Useful if itemCount > items per block.
-                            // NOTE if the server can run faster than the stream, and read_or_write() is called with
-                            // a very large item count, we should process all results here.
-                            // receiveOneBlock();
+                                return itemsCopiedSoFar; // advance failed
+
+#if 0
+                            // To reduce latency on streaming reads we could check for new results here.
+                            // This is especially useful if itemCount > items per block or if the server
+                            // can run faster than the stream.
+                            receiveOneBlock();
+#endif
                             break;
                         case BlockReq::AT_FINAL_BLOCK_END:
                             state_() = STREAM_STATE_OPEN_EOF;

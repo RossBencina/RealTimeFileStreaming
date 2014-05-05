@@ -1,0 +1,453 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		739ECB661917BEE200ED19DE /* pa_allocation.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB4E1917BEE200ED19DE /* pa_allocation.c */; };
+		739ECB671917BEE200ED19DE /* pa_converters.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB501917BEE200ED19DE /* pa_converters.c */; };
+		739ECB681917BEE200ED19DE /* pa_cpuload.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB521917BEE200ED19DE /* pa_cpuload.c */; };
+		739ECB691917BEE200ED19DE /* pa_debugprint.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB541917BEE200ED19DE /* pa_debugprint.c */; };
+		739ECB6A1917BEE200ED19DE /* pa_dither.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB561917BEE200ED19DE /* pa_dither.c */; };
+		739ECB6B1917BEE200ED19DE /* pa_front.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB591917BEE200ED19DE /* pa_front.c */; };
+		739ECB6C1917BEE200ED19DE /* pa_process.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB5C1917BEE200ED19DE /* pa_process.c */; };
+		739ECB6D1917BEE200ED19DE /* pa_ringbuffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB5E1917BEE200ED19DE /* pa_ringbuffer.c */; };
+		739ECB6E1917BEE200ED19DE /* pa_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB601917BEE200ED19DE /* pa_stream.c */; };
+		739ECB6F1917BEE200ED19DE /* pa_trace.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB621917BEE200ED19DE /* pa_trace.c */; };
+		739ECB761917BEFF00ED19DE /* pa_mac_core_blocking.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB701917BEFF00ED19DE /* pa_mac_core_blocking.c */; };
+		739ECB771917BEFF00ED19DE /* pa_mac_core_utilities.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB731917BEFF00ED19DE /* pa_mac_core_utilities.c */; };
+		739ECB781917BEFF00ED19DE /* pa_mac_core.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB751917BEFF00ED19DE /* pa_mac_core.c */; };
+		739ECB7C1917BF1400ED19DE /* pa_unix_hostapis.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB791917BF1400ED19DE /* pa_unix_hostapis.c */; };
+		739ECB7D1917BF1400ED19DE /* pa_unix_util.c in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB7A1917BF1400ED19DE /* pa_unix_util.c */; };
+		739ECB961917BF5700ED19DE /* FileIoReadStream_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB8C1917BF5700ED19DE /* FileIoReadStream_test.cpp */; };
+		739ECB971917BF5700ED19DE /* FileIoServer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB8E1917BF5700ED19DE /* FileIoServer.cpp */; };
+		739ECB981917BF5700ED19DE /* FileIoStreams.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB901917BF5700ED19DE /* FileIoStreams.cpp */; };
+		739ECB991917BF5700ED19DE /* FileIoWriteStream_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB921917BF5700ED19DE /* FileIoWriteStream_test.cpp */; };
+		739ECB9A1917BF5700ED19DE /* RecordAndPlayFileMain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB931917BF5700ED19DE /* RecordAndPlayFileMain.cpp */; };
+		739ECB9B1917BF5700ED19DE /* SharedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 739ECB941917BF5700ED19DE /* SharedBuffer.cpp */; };
+		739ECBD51917E1FC00ED19DE /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 739ECBD41917E1FC00ED19DE /* CoreAudio.framework */; };
+		739ECBD71917E21000ED19DE /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 739ECBD61917E21000ED19DE /* AudioToolbox.framework */; };
+		739ECBD91917E21800ED19DE /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 739ECBD81917E21800ED19DE /* AudioUnit.framework */; };
+		739ECBDB1917E23000ED19DE /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 739ECBDA1917E23000ED19DE /* CoreFoundation.framework */; };
+		739ECBDD1917E24500ED19DE /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 739ECBDC1917E24500ED19DE /* Carbon.framework */; };
+		739ECBDF1917E25D00ED19DE /* QwNodePool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 739ECBDE1917E25D00ED19DE /* QwNodePool.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		739ECB3A1917BDE100ED19DE /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		739ECB3C1917BDE100ED19DE /* RealTimeFileStreaming */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = RealTimeFileStreaming; sourceTree = BUILT_PRODUCTS_DIR; };
+		739ECB4E1917BEE200ED19DE /* pa_allocation.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_allocation.c; path = ../../../../portaudio/src/common/pa_allocation.c; sourceTree = "<group>"; };
+		739ECB4F1917BEE200ED19DE /* pa_allocation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_allocation.h; path = ../../../../portaudio/src/common/pa_allocation.h; sourceTree = "<group>"; };
+		739ECB501917BEE200ED19DE /* pa_converters.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_converters.c; path = ../../../../portaudio/src/common/pa_converters.c; sourceTree = "<group>"; };
+		739ECB511917BEE200ED19DE /* pa_converters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_converters.h; path = ../../../../portaudio/src/common/pa_converters.h; sourceTree = "<group>"; };
+		739ECB521917BEE200ED19DE /* pa_cpuload.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_cpuload.c; path = ../../../../portaudio/src/common/pa_cpuload.c; sourceTree = "<group>"; };
+		739ECB531917BEE200ED19DE /* pa_cpuload.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_cpuload.h; path = ../../../../portaudio/src/common/pa_cpuload.h; sourceTree = "<group>"; };
+		739ECB541917BEE200ED19DE /* pa_debugprint.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_debugprint.c; path = ../../../../portaudio/src/common/pa_debugprint.c; sourceTree = "<group>"; };
+		739ECB551917BEE200ED19DE /* pa_debugprint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_debugprint.h; path = ../../../../portaudio/src/common/pa_debugprint.h; sourceTree = "<group>"; };
+		739ECB561917BEE200ED19DE /* pa_dither.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_dither.c; path = ../../../../portaudio/src/common/pa_dither.c; sourceTree = "<group>"; };
+		739ECB571917BEE200ED19DE /* pa_dither.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_dither.h; path = ../../../../portaudio/src/common/pa_dither.h; sourceTree = "<group>"; };
+		739ECB581917BEE200ED19DE /* pa_endianness.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_endianness.h; path = ../../../../portaudio/src/common/pa_endianness.h; sourceTree = "<group>"; };
+		739ECB591917BEE200ED19DE /* pa_front.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_front.c; path = ../../../../portaudio/src/common/pa_front.c; sourceTree = "<group>"; };
+		739ECB5A1917BEE200ED19DE /* pa_hostapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_hostapi.h; path = ../../../../portaudio/src/common/pa_hostapi.h; sourceTree = "<group>"; };
+		739ECB5B1917BEE200ED19DE /* pa_memorybarrier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_memorybarrier.h; path = ../../../../portaudio/src/common/pa_memorybarrier.h; sourceTree = "<group>"; };
+		739ECB5C1917BEE200ED19DE /* pa_process.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_process.c; path = ../../../../portaudio/src/common/pa_process.c; sourceTree = "<group>"; };
+		739ECB5D1917BEE200ED19DE /* pa_process.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_process.h; path = ../../../../portaudio/src/common/pa_process.h; sourceTree = "<group>"; };
+		739ECB5E1917BEE200ED19DE /* pa_ringbuffer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_ringbuffer.c; path = ../../../../portaudio/src/common/pa_ringbuffer.c; sourceTree = "<group>"; };
+		739ECB5F1917BEE200ED19DE /* pa_ringbuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_ringbuffer.h; path = ../../../../portaudio/src/common/pa_ringbuffer.h; sourceTree = "<group>"; };
+		739ECB601917BEE200ED19DE /* pa_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_stream.c; path = ../../../../portaudio/src/common/pa_stream.c; sourceTree = "<group>"; };
+		739ECB611917BEE200ED19DE /* pa_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_stream.h; path = ../../../../portaudio/src/common/pa_stream.h; sourceTree = "<group>"; };
+		739ECB621917BEE200ED19DE /* pa_trace.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_trace.c; path = ../../../../portaudio/src/common/pa_trace.c; sourceTree = "<group>"; };
+		739ECB631917BEE200ED19DE /* pa_trace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_trace.h; path = ../../../../portaudio/src/common/pa_trace.h; sourceTree = "<group>"; };
+		739ECB641917BEE200ED19DE /* pa_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_types.h; path = ../../../../portaudio/src/common/pa_types.h; sourceTree = "<group>"; };
+		739ECB651917BEE200ED19DE /* pa_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_util.h; path = ../../../../portaudio/src/common/pa_util.h; sourceTree = "<group>"; };
+		739ECB701917BEFF00ED19DE /* pa_mac_core_blocking.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_mac_core_blocking.c; path = ../../../../portaudio/src/hostapi/coreaudio/pa_mac_core_blocking.c; sourceTree = "<group>"; };
+		739ECB711917BEFF00ED19DE /* pa_mac_core_blocking.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_mac_core_blocking.h; path = ../../../../portaudio/src/hostapi/coreaudio/pa_mac_core_blocking.h; sourceTree = "<group>"; };
+		739ECB721917BEFF00ED19DE /* pa_mac_core_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_mac_core_internal.h; path = ../../../../portaudio/src/hostapi/coreaudio/pa_mac_core_internal.h; sourceTree = "<group>"; };
+		739ECB731917BEFF00ED19DE /* pa_mac_core_utilities.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_mac_core_utilities.c; path = ../../../../portaudio/src/hostapi/coreaudio/pa_mac_core_utilities.c; sourceTree = "<group>"; };
+		739ECB741917BEFF00ED19DE /* pa_mac_core_utilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_mac_core_utilities.h; path = ../../../../portaudio/src/hostapi/coreaudio/pa_mac_core_utilities.h; sourceTree = "<group>"; };
+		739ECB751917BEFF00ED19DE /* pa_mac_core.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_mac_core.c; path = ../../../../portaudio/src/hostapi/coreaudio/pa_mac_core.c; sourceTree = "<group>"; };
+		739ECB791917BF1400ED19DE /* pa_unix_hostapis.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_unix_hostapis.c; path = ../../../../portaudio/src/os/unix/pa_unix_hostapis.c; sourceTree = "<group>"; };
+		739ECB7A1917BF1400ED19DE /* pa_unix_util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pa_unix_util.c; path = ../../../../portaudio/src/os/unix/pa_unix_util.c; sourceTree = "<group>"; };
+		739ECB7B1917BF1400ED19DE /* pa_unix_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_unix_util.h; path = ../../../../portaudio/src/os/unix/pa_unix_util.h; sourceTree = "<group>"; };
+		739ECB7E1917BF2700ED19DE /* pa_mac_core.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pa_mac_core.h; path = ../../../../portaudio/include/pa_mac_core.h; sourceTree = "<group>"; };
+		739ECB7F1917BF2700ED19DE /* portaudio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = portaudio.h; path = ../../../../portaudio/include/portaudio.h; sourceTree = "<group>"; };
+		739ECB801917BF4500ED19DE /* qw_atomic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qw_atomic.h; path = ../../../../QueueWorld/include/qw_atomic.h; sourceTree = "<group>"; };
+		739ECB811917BF4500ED19DE /* qw_remove_pointer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qw_remove_pointer.h; path = ../../../../QueueWorld/include/qw_remove_pointer.h; sourceTree = "<group>"; };
+		739ECB821917BF4500ED19DE /* QwConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwConfig.h; path = ../../../../QueueWorld/include/QwConfig.h; sourceTree = "<group>"; };
+		739ECB831917BF4500ED19DE /* QwList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwList.h; path = ../../../../QueueWorld/include/QwList.h; sourceTree = "<group>"; };
+		739ECB841917BF4500ED19DE /* QwMpmcPopAllLifoStack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwMpmcPopAllLifoStack.h; path = ../../../../QueueWorld/include/QwMpmcPopAllLifoStack.h; sourceTree = "<group>"; };
+		739ECB851917BF4500ED19DE /* QwMpscFifoQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwMpscFifoQueue.h; path = ../../../../QueueWorld/include/QwMpscFifoQueue.h; sourceTree = "<group>"; };
+		739ECB861917BF4500ED19DE /* QwNodePool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwNodePool.h; path = ../../../../QueueWorld/include/QwNodePool.h; sourceTree = "<group>"; };
+		739ECB871917BF4500ED19DE /* QwSingleLinkNodeInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwSingleLinkNodeInfo.h; path = ../../../../QueueWorld/include/QwSingleLinkNodeInfo.h; sourceTree = "<group>"; };
+		739ECB881917BF4500ED19DE /* QwSList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwSList.h; path = ../../../../QueueWorld/include/QwSList.h; sourceTree = "<group>"; };
+		739ECB891917BF4500ED19DE /* QwSpscUnorderedResultQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwSpscUnorderedResultQueue.h; path = ../../../../QueueWorld/include/QwSpscUnorderedResultQueue.h; sourceTree = "<group>"; };
+		739ECB8A1917BF4500ED19DE /* QwSTailList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwSTailList.h; path = ../../../../QueueWorld/include/QwSTailList.h; sourceTree = "<group>"; };
+		739ECB8B1917BF5700ED19DE /* DataBlock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DataBlock.h; path = ../../../src/DataBlock.h; sourceTree = "<group>"; };
+		739ECB8C1917BF5700ED19DE /* FileIoReadStream_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileIoReadStream_test.cpp; path = ../../../src/FileIoReadStream_test.cpp; sourceTree = "<group>"; };
+		739ECB8D1917BF5700ED19DE /* FileIoRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FileIoRequest.h; path = ../../../src/FileIoRequest.h; sourceTree = "<group>"; };
+		739ECB8E1917BF5700ED19DE /* FileIoServer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileIoServer.cpp; path = ../../../src/FileIoServer.cpp; sourceTree = "<group>"; };
+		739ECB8F1917BF5700ED19DE /* FileIoServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FileIoServer.h; path = ../../../src/FileIoServer.h; sourceTree = "<group>"; };
+		739ECB901917BF5700ED19DE /* FileIoStreams.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileIoStreams.cpp; path = ../../../src/FileIoStreams.cpp; sourceTree = "<group>"; };
+		739ECB911917BF5700ED19DE /* FileIoStreams.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FileIoStreams.h; path = ../../../src/FileIoStreams.h; sourceTree = "<group>"; };
+		739ECB921917BF5700ED19DE /* FileIoWriteStream_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileIoWriteStream_test.cpp; path = ../../../src/FileIoWriteStream_test.cpp; sourceTree = "<group>"; };
+		739ECB931917BF5700ED19DE /* RecordAndPlayFileMain.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = RecordAndPlayFileMain.cpp; path = ../../../src/RecordAndPlayFileMain.cpp; sourceTree = "<group>"; };
+		739ECB941917BF5700ED19DE /* SharedBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SharedBuffer.cpp; path = ../../../src/SharedBuffer.cpp; sourceTree = "<group>"; };
+		739ECB951917BF5700ED19DE /* SharedBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SharedBuffer.h; path = ../../../src/SharedBuffer.h; sourceTree = "<group>"; };
+		739ECBD41917E1FC00ED19DE /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+		739ECBD61917E21000ED19DE /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		739ECBD81917E21800ED19DE /* AudioUnit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioUnit.framework; path = System/Library/Frameworks/AudioUnit.framework; sourceTree = SDKROOT; };
+		739ECBDA1917E23000ED19DE /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		739ECBDC1917E24500ED19DE /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
+		739ECBDE1917E25D00ED19DE /* QwNodePool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = QwNodePool.cpp; path = ../../../../QueueWorld/src/QwNodePool.cpp; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		739ECB391917BDE100ED19DE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				739ECBDD1917E24500ED19DE /* Carbon.framework in Frameworks */,
+				739ECBDB1917E23000ED19DE /* CoreFoundation.framework in Frameworks */,
+				739ECBD91917E21800ED19DE /* AudioUnit.framework in Frameworks */,
+				739ECBD71917E21000ED19DE /* AudioToolbox.framework in Frameworks */,
+				739ECBD51917E1FC00ED19DE /* CoreAudio.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		739ECB331917BDE100ED19DE = {
+			isa = PBXGroup;
+			children = (
+				739ECBDC1917E24500ED19DE /* Carbon.framework */,
+				739ECBDA1917E23000ED19DE /* CoreFoundation.framework */,
+				739ECBD81917E21800ED19DE /* AudioUnit.framework */,
+				739ECBD61917E21000ED19DE /* AudioToolbox.framework */,
+				739ECBD41917E1FC00ED19DE /* CoreAudio.framework */,
+				739ECB4D1917BE6800ED19DE /* QueueWorld */,
+				739ECB481917BE4300ED19DE /* PortAudio */,
+				739ECB9C1917C10900ED19DE /* RealTimeFileStreaming */,
+				739ECB3D1917BDE100ED19DE /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		739ECB3D1917BDE100ED19DE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				739ECB3C1917BDE100ED19DE /* RealTimeFileStreaming */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		739ECB481917BE4300ED19DE /* PortAudio */ = {
+			isa = PBXGroup;
+			children = (
+				739ECB4C1917BE5F00ED19DE /* os-mac */,
+				739ECB4B1917BE5800ED19DE /* include */,
+				739ECB4A1917BE5000ED19DE /* hostapi */,
+				739ECB491917BE4B00ED19DE /* common */,
+			);
+			name = PortAudio;
+			sourceTree = "<group>";
+		};
+		739ECB491917BE4B00ED19DE /* common */ = {
+			isa = PBXGroup;
+			children = (
+				739ECB4E1917BEE200ED19DE /* pa_allocation.c */,
+				739ECB4F1917BEE200ED19DE /* pa_allocation.h */,
+				739ECB501917BEE200ED19DE /* pa_converters.c */,
+				739ECB511917BEE200ED19DE /* pa_converters.h */,
+				739ECB521917BEE200ED19DE /* pa_cpuload.c */,
+				739ECB531917BEE200ED19DE /* pa_cpuload.h */,
+				739ECB541917BEE200ED19DE /* pa_debugprint.c */,
+				739ECB551917BEE200ED19DE /* pa_debugprint.h */,
+				739ECB561917BEE200ED19DE /* pa_dither.c */,
+				739ECB571917BEE200ED19DE /* pa_dither.h */,
+				739ECB581917BEE200ED19DE /* pa_endianness.h */,
+				739ECB591917BEE200ED19DE /* pa_front.c */,
+				739ECB5A1917BEE200ED19DE /* pa_hostapi.h */,
+				739ECB5B1917BEE200ED19DE /* pa_memorybarrier.h */,
+				739ECB5C1917BEE200ED19DE /* pa_process.c */,
+				739ECB5D1917BEE200ED19DE /* pa_process.h */,
+				739ECB5E1917BEE200ED19DE /* pa_ringbuffer.c */,
+				739ECB5F1917BEE200ED19DE /* pa_ringbuffer.h */,
+				739ECB601917BEE200ED19DE /* pa_stream.c */,
+				739ECB611917BEE200ED19DE /* pa_stream.h */,
+				739ECB621917BEE200ED19DE /* pa_trace.c */,
+				739ECB631917BEE200ED19DE /* pa_trace.h */,
+				739ECB641917BEE200ED19DE /* pa_types.h */,
+				739ECB651917BEE200ED19DE /* pa_util.h */,
+			);
+			name = common;
+			sourceTree = "<group>";
+		};
+		739ECB4A1917BE5000ED19DE /* hostapi */ = {
+			isa = PBXGroup;
+			children = (
+				739ECB701917BEFF00ED19DE /* pa_mac_core_blocking.c */,
+				739ECB711917BEFF00ED19DE /* pa_mac_core_blocking.h */,
+				739ECB721917BEFF00ED19DE /* pa_mac_core_internal.h */,
+				739ECB731917BEFF00ED19DE /* pa_mac_core_utilities.c */,
+				739ECB741917BEFF00ED19DE /* pa_mac_core_utilities.h */,
+				739ECB751917BEFF00ED19DE /* pa_mac_core.c */,
+			);
+			name = hostapi;
+			sourceTree = "<group>";
+		};
+		739ECB4B1917BE5800ED19DE /* include */ = {
+			isa = PBXGroup;
+			children = (
+				739ECB7E1917BF2700ED19DE /* pa_mac_core.h */,
+				739ECB7F1917BF2700ED19DE /* portaudio.h */,
+			);
+			name = include;
+			sourceTree = "<group>";
+		};
+		739ECB4C1917BE5F00ED19DE /* os-mac */ = {
+			isa = PBXGroup;
+			children = (
+				739ECB791917BF1400ED19DE /* pa_unix_hostapis.c */,
+				739ECB7A1917BF1400ED19DE /* pa_unix_util.c */,
+				739ECB7B1917BF1400ED19DE /* pa_unix_util.h */,
+			);
+			name = "os-mac";
+			sourceTree = "<group>";
+		};
+		739ECB4D1917BE6800ED19DE /* QueueWorld */ = {
+			isa = PBXGroup;
+			children = (
+				739ECBDE1917E25D00ED19DE /* QwNodePool.cpp */,
+				739ECB801917BF4500ED19DE /* qw_atomic.h */,
+				739ECB811917BF4500ED19DE /* qw_remove_pointer.h */,
+				739ECB821917BF4500ED19DE /* QwConfig.h */,
+				739ECB831917BF4500ED19DE /* QwList.h */,
+				739ECB841917BF4500ED19DE /* QwMpmcPopAllLifoStack.h */,
+				739ECB851917BF4500ED19DE /* QwMpscFifoQueue.h */,
+				739ECB861917BF4500ED19DE /* QwNodePool.h */,
+				739ECB871917BF4500ED19DE /* QwSingleLinkNodeInfo.h */,
+				739ECB881917BF4500ED19DE /* QwSList.h */,
+				739ECB891917BF4500ED19DE /* QwSpscUnorderedResultQueue.h */,
+				739ECB8A1917BF4500ED19DE /* QwSTailList.h */,
+			);
+			name = QueueWorld;
+			sourceTree = "<group>";
+		};
+		739ECB9C1917C10900ED19DE /* RealTimeFileStreaming */ = {
+			isa = PBXGroup;
+			children = (
+				739ECB8B1917BF5700ED19DE /* DataBlock.h */,
+				739ECB8C1917BF5700ED19DE /* FileIoReadStream_test.cpp */,
+				739ECB8D1917BF5700ED19DE /* FileIoRequest.h */,
+				739ECB8E1917BF5700ED19DE /* FileIoServer.cpp */,
+				739ECB8F1917BF5700ED19DE /* FileIoServer.h */,
+				739ECB901917BF5700ED19DE /* FileIoStreams.cpp */,
+				739ECB911917BF5700ED19DE /* FileIoStreams.h */,
+				739ECB921917BF5700ED19DE /* FileIoWriteStream_test.cpp */,
+				739ECB931917BF5700ED19DE /* RecordAndPlayFileMain.cpp */,
+				739ECB941917BF5700ED19DE /* SharedBuffer.cpp */,
+				739ECB951917BF5700ED19DE /* SharedBuffer.h */,
+			);
+			name = RealTimeFileStreaming;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		739ECB3B1917BDE100ED19DE /* RealTimeFileStreaming */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 739ECB451917BDE100ED19DE /* Build configuration list for PBXNativeTarget "RealTimeFileStreaming" */;
+			buildPhases = (
+				739ECB381917BDE100ED19DE /* Sources */,
+				739ECB391917BDE100ED19DE /* Frameworks */,
+				739ECB3A1917BDE100ED19DE /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RealTimeFileStreaming;
+			productName = RealTimeFileStreaming;
+			productReference = 739ECB3C1917BDE100ED19DE /* RealTimeFileStreaming */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		739ECB341917BDE100ED19DE /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0460;
+				ORGANIZATIONNAME = "Ross Bencina";
+			};
+			buildConfigurationList = 739ECB371917BDE100ED19DE /* Build configuration list for PBXProject "RealTimeFileStreaming" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 739ECB331917BDE100ED19DE;
+			productRefGroup = 739ECB3D1917BDE100ED19DE /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				739ECB3B1917BDE100ED19DE /* RealTimeFileStreaming */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		739ECB381917BDE100ED19DE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				739ECB661917BEE200ED19DE /* pa_allocation.c in Sources */,
+				739ECB671917BEE200ED19DE /* pa_converters.c in Sources */,
+				739ECB681917BEE200ED19DE /* pa_cpuload.c in Sources */,
+				739ECB691917BEE200ED19DE /* pa_debugprint.c in Sources */,
+				739ECB6A1917BEE200ED19DE /* pa_dither.c in Sources */,
+				739ECB6B1917BEE200ED19DE /* pa_front.c in Sources */,
+				739ECB6C1917BEE200ED19DE /* pa_process.c in Sources */,
+				739ECB6D1917BEE200ED19DE /* pa_ringbuffer.c in Sources */,
+				739ECB6E1917BEE200ED19DE /* pa_stream.c in Sources */,
+				739ECB6F1917BEE200ED19DE /* pa_trace.c in Sources */,
+				739ECB761917BEFF00ED19DE /* pa_mac_core_blocking.c in Sources */,
+				739ECB771917BEFF00ED19DE /* pa_mac_core_utilities.c in Sources */,
+				739ECB781917BEFF00ED19DE /* pa_mac_core.c in Sources */,
+				739ECB7C1917BF1400ED19DE /* pa_unix_hostapis.c in Sources */,
+				739ECB7D1917BF1400ED19DE /* pa_unix_util.c in Sources */,
+				739ECB961917BF5700ED19DE /* FileIoReadStream_test.cpp in Sources */,
+				739ECB971917BF5700ED19DE /* FileIoServer.cpp in Sources */,
+				739ECB981917BF5700ED19DE /* FileIoStreams.cpp in Sources */,
+				739ECB991917BF5700ED19DE /* FileIoWriteStream_test.cpp in Sources */,
+				739ECB9A1917BF5700ED19DE /* RecordAndPlayFileMain.cpp in Sources */,
+				739ECB9B1917BF5700ED19DE /* SharedBuffer.cpp in Sources */,
+				739ECBDF1917E25D00ED19DE /* QwNodePool.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		739ECB431917BDE100ED19DE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+					"PA_USE_COREAUDIO=1",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					../../../../portaudio/include,
+					../../../../mintomic/include,
+					../../../../QueueWorld/include,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		739ECB441917BDE100ED19DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = "PA_USE_COREAUDIO=1";
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					../../../../portaudio/include,
+					../../../../mintomic/include,
+					../../../../QueueWorld/include,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		739ECB461917BDE100ED19DE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		739ECB471917BDE100ED19DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		739ECB371917BDE100ED19DE /* Build configuration list for PBXProject "RealTimeFileStreaming" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				739ECB431917BDE100ED19DE /* Debug */,
+				739ECB441917BDE100ED19DE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		739ECB451917BDE100ED19DE /* Build configuration list for PBXNativeTarget "RealTimeFileStreaming" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				739ECB461917BDE100ED19DE /* Debug */,
+				739ECB471917BDE100ED19DE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 739ECB341917BDE100ED19DE /* Project object */;
+}

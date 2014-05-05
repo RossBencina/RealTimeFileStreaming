@@ -34,6 +34,10 @@
 #include "SharedBuffer.h"
 #include "DataBlock.h"
 
+#ifndef NOERROR
+#define NOERROR (0)
+#endif
+
 //#define IO_USE_CONSTANT_TIME_RESULT_POLLING
 
 
@@ -395,7 +399,7 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
             FileIoRequest *blockReq = prefetchQueue_front();
             prefetchQueue_pop_front();
             flushBlock(blockReq,
-                    std::bind1st(std::mem_fun1(&transit_list_t::push_front), &blockRequests));
+                    std::bind1st(std::mem_fun(&transit_list_t::push_front), &blockRequests));
         }
 
         prefetchQueueTail_() = 0;
@@ -721,7 +725,7 @@ public:
                         size_t itemsRemainingToCopy = maxItemsToCopy - itemsCopiedSoFar;
 
                         size_t itemsCopied = 0;
-                        BlockReq::CopyStatus copyStatus = BlockReq::copyBlockData(frontBlockReq, userBytesPtr, itemsRemainingToCopy, itemSizeBytes, &itemsCopied);
+                        typename BlockReq::CopyStatus copyStatus = BlockReq::copyBlockData(frontBlockReq, userBytesPtr, itemsRemainingToCopy, itemSizeBytes, &itemsCopied);
 
                         userBytesPtr += itemsCopied * itemSizeBytes;
                         itemsCopiedSoFar += itemsCopied;

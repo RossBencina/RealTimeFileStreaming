@@ -27,17 +27,7 @@
 
 // NOTE: all functions declared here are real-time safe
 
-typedef void READSTREAM;
-
-READSTREAM *FileIoReadStream_open( SharedBuffer *path, FileIoRequest::OpenMode openMode ); 
-
-void FileIoReadStream_close( READSTREAM *fp );
-
-int FileIoReadStream_seek( READSTREAM *fp, size_t pos ); // returns non-zero if there's a problem
-
-size_t FileIoReadStream_read( void *dest, size_t itemSize, size_t itemCount, READSTREAM *fp );
-
-enum FileIoReadStreamState {
+enum FileIoStreamState {
     // stream states
 
     STREAM_STATE_OPENING = FileIoRequest::CLIENT_USE_BASE_,
@@ -48,11 +38,43 @@ enum FileIoReadStreamState {
     STREAM_STATE_ERROR,
 };
 
-FileIoReadStreamState FileIoReadStream_pollState( READSTREAM *fp );
 
-int FileIoReadStream_getError( READSTREAM *fp ); // returns the error code. only returns non-zero if pollState returns READSTREAM_STATE_ERROR
+// read stream
+
+typedef void READSTREAM;
+
+READSTREAM *FileIoReadStream_open( SharedBuffer *path, FileIoRequest::OpenMode openMode ); 
+
+void FileIoReadStream_close( READSTREAM *fp );
+
+int FileIoReadStream_seek( READSTREAM *fp, size_t pos ); // returns non-zero if there's a problem
+
+size_t FileIoReadStream_read( void *dest, size_t itemSize, size_t itemCount, READSTREAM *fp );
+
+FileIoStreamState FileIoReadStream_pollState( READSTREAM *fp );
+
+int FileIoReadStream_getError( READSTREAM *fp ); // returns the error code. only returns non-zero if pollState returns STREAM_STATE_ERROR
 
 void FileIoReadStream_test();
+
+
+// write stream
+
+typedef void WRITESTREAM;
+
+WRITESTREAM *FileIoWriteStream_open( SharedBuffer *path, FileIoRequest::OpenMode openMode ); 
+
+void FileIoWriteStream_close( WRITESTREAM *fp );
+
+int FileIoWriteStream_seek( WRITESTREAM *fp, size_t pos ); // returns non-zero if there's a problem
+
+size_t FileIoWriteStream_write( const void *src, size_t itemSize, size_t itemCount, WRITESTREAM *fp );
+
+FileIoStreamState FileIoWriteStream_pollState( WRITESTREAM *fp );
+
+int FileIoWriteStream_getError( WRITESTREAM *fp ); // returns the error code. only returns non-zero if pollState returns STREAM_STATE_ERROR
+
+void FileIoWriteStream_test();
 
 
 #endif /* INCLUDED_FILEIOSTREAMS_H */

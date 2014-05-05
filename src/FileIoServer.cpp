@@ -228,23 +228,40 @@ static void handleReleaseReadBlockRequest( FileIoRequest *r )
 static void handleAllocateWriteBlockRequest( FileIoRequest *r )
 {
     assert( r->requestType == FileIoRequest::ALLOCATE_WRITE_BLOCK );
-    // Allocate the block, read existing data (if any), return the block to the client, increment the file record dependent count
+    // Allocate the block, read existing data (if any), return the block to the client,
+    // increment the file record dependent count
     
     FileRecord *fileRecord = static_cast<FileRecord*>(r->allocateWriteBlock.fileHandle);
+    if (fileRecord) {
+        DataBlock *dataBlock = allocDataBlock();
+        if (dataBlock) {
 
-    DataBlock *dataBlock = allocDataBlock();
-    if (dataBlock) {
-        // FIXME: we're only supporting 32 bit file positions here
-        if (std::fseek(fileRecord->fp, r->allocateWriteBlock.filePosition, SEEK_SET)==0) {
-            dataBlock->validCountBytes = std::fread(dataBlock->data, 1, dataBlock->capacityBytes, fileRecord->fp);
+            // FIXME: we're only supporting 32 bit file positions here
+            if (std::fseek(fileRecord->fp, r->allocateWriteBlock.filePosition, SEEK_SET) != 0) {
+                // seek failed
+                r->resultStatus = (errno==NOERROR) ? EIO : errno;
+                r->allocateWriteBlock.dataBlock = 0;
+                freeDataBlock(dataBlock);
+                dataBlock = 0;
+            }else{
+
+                dataBlock->validCountBytes = std::fread(dataBlock->data, 1, dataBlock->capacityBytes, fileRecord->fp);
+
+                // irrespective of how many bytes are read, return the block to the client
+                r->resultStatus = NOERROR;
+                r->allocateWriteBlock.dataBlock = dataBlock; // return the block
+            }
         }else{
-            // couldn't seek to position, return data block with no valid data
+            r->resultStatus = ENOMEM;
         }
+    }else{
+        r->resultStatus = EBADF;
     }
 
-    r->allocateWriteBlock.dataBlock = dataBlock;
+    if (r->allocateWriteBlock.dataBlock)
+        ++fileRecord->dependentClientCount;
+
     completeRequestToClientResultQueue(r->allocateWriteBlock.resultQueue, r);
-    ++fileRecord->dependentClientCount;
 }
 
 static void handleCommitModifiedWriteBlockRequest( FileIoRequest *r )
@@ -253,15 +270,16 @@ static void handleCommitModifiedWriteBlockRequest( FileIoRequest *r )
     // Write valid data to the file, free the data block, decrement file record dependent client count
 
     FileRecord *fileRecord = static_cast<FileRecord*>(r->commitModifiedWriteBlock.fileHandle);
-
-    // FIXME: we're only supporting 32 bit file positions here
-    if (std::fseek(fileRecord->fp, r->commitModifiedWriteBlock.filePosition, SEEK_SET)==0) {
-        DataBlock *dataBlock = r->commitModifiedWriteBlock.dataBlock;
-        std::fwrite(dataBlock->data, 1, dataBlock->validCountBytes, fileRecord->fp); // silently ignore errors
-    }else{
-        // couldn't seek to position, silently fail
+    if (fileRecord) {
+        // FIXME: we're only supporting 32 bit file positions here
+        if (std::fseek(fileRecord->fp, r->commitModifiedWriteBlock.filePosition, SEEK_SET)==0) {
+            DataBlock *dataBlock = r->commitModifiedWriteBlock.dataBlock;
+            std::fwrite(dataBlock->data, 1, dataBlock->validCountBytes, fileRecord->fp); // silently ignore errors
+        }else{
+            // couldn't seek to position, silently fail
+        }
     }
-   
+
     freeDataBlock(r->commitModifiedWriteBlock.dataBlock);
     releaseFileRecordClientRef( static_cast<FileRecord*>(r->commitModifiedWriteBlock.fileHandle) );
     freeFileIoRequest(r);
@@ -485,15 +503,12 @@ TODO:
 
         o- optional, later: support seeking
 
-    o- example write stream routines (all asynchronous O(1) or near to)
-        o- allocate a stream
-        o- write data to the stream
-        o- close the stream
+    x- example write stream routines (all asynchronous O(1) or near to)
+        x- allocate a stream
+        x- write data to the stream
+        x- close the stream
 
-
-
-
-
+        
     o- write an example program that can record and play. 
         press r to start recording, s to stop recording. p to play the recording.
 

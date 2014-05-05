@@ -39,15 +39,6 @@
 
 struct BlockRequestBehavior { // behavior with implementation common to read and write requests
 
-    // when not in-flight, the request type field represents the state of the block request.
-    // the acquire request type is mapped to the PENDING state.
-    enum BlockState {
-        BLOCK_STATE_PENDING = FileIoRequest::READ_BLOCK,
-        BLOCK_STATE_READY = FileIoRequest::CLIENT_USE_BASE_,
-        BLOCK_STATE_MODIFIED, // not used for read streams
-        BLOCK_STATE_ERROR
-    };
-
     // L-value aliases. Map/alias request fields to our use of them.
 
     static FileIoRequest*& next_(FileIoRequest *r) { return r->links_[FileIoRequest::CLIENT_NEXT_LINK_INDEX]; }
@@ -64,15 +55,26 @@ struct BlockRequestBehavior { // behavior with implementation common to read and
 
 struct ReadBlockRequestBehavior : public BlockRequestBehavior {
 
-    // fields
+    // when not in-flight, the request type field represents the state of the block request.
+    // the acquire request type is mapped to the PENDING state.
+    enum BlockState {
+        BLOCK_STATE_PENDING = FileIoRequest::READ_BLOCK,
+        BLOCK_STATE_READY = FileIoRequest::CLIENT_USE_BASE_,
+        BLOCK_STATE_READY_MODIFIED, // not used for read streams
+        BLOCK_STATE_ERROR
+    };
+
+    // fields and predicates
 
     static DataBlock *dataBlock(FileIoRequest *r) { return r->readBlock.dataBlock; }
     static size_t filePosition(FileIoRequest *r) { return r->readBlock.filePosition; }
 
-    // predicates
-
     static bool hasDataBlock(FileIoRequest *r) { return (dataBlock(r) != 0); }
     
+    static bool isReady(FileIoRequest *r) { return (state_(r) == BLOCK_STATE_READY); }
+    
+    // request initialization and transformation
+
     // In abstract terms, data blocks are /acquired/ from the server and /released/ back to the server.
     //
     // For read-only streams READ_BLOCK is acquire and RELEASE_READ_BLOCK is release.
@@ -90,6 +92,7 @@ struct ReadBlockRequestBehavior : public BlockRequestBehavior {
         blockReq->readBlock.fileHandle = fileHandle;
         blockReq->readBlock.filePosition = pos;
         blockReq->readBlock.dataBlock = 0;
+        blockReq->readBlock.isAtEof = false;
         blockReq->readBlock.resultQueue = resultQueueReq;
     }
 
@@ -103,13 +106,14 @@ struct ReadBlockRequestBehavior : public BlockRequestBehavior {
         blockReq->releaseReadBlock.dataBlock = dataBlock;
     }
 
-    static void transformToCommitModified( FileIoRequest *readBlockReq )
+    static void transformToCommitModified( FileIoRequest *blockReq )
     {
         assert(false); // read blocks can't be committed, and won't be. because we never mark blocks as modified
     }
 
-
     // copyBlockData: Copy data into or out of the block. (out-of: read, in-to: write)
+
+    typedef void* user_items_ptr_t; // this is const for write streams
 
     enum CopyStatus { CAN_CONTINUE, AT_BLOCK_END, AT_FINAL_BLOCK_END };
     /*
@@ -119,9 +123,8 @@ struct ReadBlockRequestBehavior : public BlockRequestBehavior {
         NEED_NEXT_BLOCK would cause the wrapper to go into the buffering state.
     */
 
-    typedef void * user_items_ptr_t; // will be const for write streams
-
-    static CopyStatus copyBlockData( FileIoRequest *blockReq, user_items_ptr_t userItemsPtr, size_t maxItemsToCopy, size_t itemSizeBytes, size_t *itemsCopiedResult )
+    static CopyStatus copyBlockData( FileIoRequest *blockReq, user_items_ptr_t userItemsPtr, 
+            size_t maxItemsToCopy, size_t itemSizeBytes, size_t *itemsCopiedResult )
     {
         size_t blockBytesCopiedSoFar = bytesCopied_(blockReq);
         size_t bytesRemainingInBlock = dataBlock(blockReq)->validCountBytes - blockBytesCopiedSoFar;
@@ -151,8 +154,113 @@ struct ReadBlockRequestBehavior : public BlockRequestBehavior {
 };
 
 
-template< typename BlockReq >
+struct WriteBlockRequestBehavior : public BlockRequestBehavior {
+
+    // when not in-flight, the request type field represents the state of the block request.
+    // the acquire request type is mapped to the PENDING state.
+    enum BlockState {
+        BLOCK_STATE_PENDING = FileIoRequest::ALLOCATE_WRITE_BLOCK,
+        BLOCK_STATE_READY = FileIoRequest::CLIENT_USE_BASE_,
+        BLOCK_STATE_READY_MODIFIED,
+        BLOCK_STATE_ERROR
+    };
+
+    // fields and predicates
+
+    static DataBlock *dataBlock(FileIoRequest *r) { return r->allocateWriteBlock.dataBlock; }
+    static size_t filePosition(FileIoRequest *r) { return r->allocateWriteBlock.filePosition; }
+
+    static bool hasDataBlock(FileIoRequest *r) { return (dataBlock(r) != 0); }
+
+    static bool isReady(FileIoRequest *r) { return ((state_(r) == BLOCK_STATE_READY) || (state_(r) == BLOCK_STATE_READY_MODIFIED)); }
+
+    // request initialization and transformation
+
+    static void initAcquire( FileIoRequest *blockReq, void *fileHandle, size_t pos, FileIoRequest *resultQueueReq )
+    {
+        next_(blockReq) = 0;
+        blockReq->resultStatus = 0;
+        bytesCopied_(blockReq) = 0;
+
+        blockReq->requestType = FileIoRequest::ALLOCATE_WRITE_BLOCK;
+        blockReq->allocateWriteBlock.fileHandle = fileHandle;
+        blockReq->allocateWriteBlock.filePosition = pos;
+        blockReq->allocateWriteBlock.dataBlock = 0;
+        blockReq->allocateWriteBlock.resultQueue = resultQueueReq;
+    }
+
+    static void transformToReleaseUnmodified( FileIoRequest *blockReq )
+    {
+        void *fileHandle = blockReq->allocateWriteBlock.fileHandle;
+        DataBlock *dataBlock = blockReq->allocateWriteBlock.dataBlock;
+
+        blockReq->requestType = FileIoRequest::RELEASE_UNMODIFIED_WRITE_BLOCK;
+        blockReq->releaseUnmodifiedWriteBlock.fileHandle = fileHandle;
+        blockReq->releaseUnmodifiedWriteBlock.dataBlock = dataBlock;
+    }
+
+    static void transformToCommitModified( FileIoRequest *blockReq )
+    {
+        void *fileHandle = blockReq->allocateWriteBlock.fileHandle;
+        std::size_t filePosition = blockReq->allocateWriteBlock.filePosition;
+        DataBlock *dataBlock = blockReq->allocateWriteBlock.dataBlock;
+
+        blockReq->requestType = FileIoRequest::COMMIT_MODIFIED_WRITE_BLOCK;
+        blockReq->commitModifiedWriteBlock.fileHandle = fileHandle;
+        blockReq->commitModifiedWriteBlock.filePosition = filePosition;
+        blockReq->commitModifiedWriteBlock.dataBlock = dataBlock;
+    }
+
+    // copyBlockData: Copy data into or out of the block. (out-of: read, in-to: write)
+
+    typedef const void* user_items_ptr_t;
+
+    enum CopyStatus { CAN_CONTINUE, AT_BLOCK_END, AT_FINAL_BLOCK_END };
+
+    static CopyStatus copyBlockData( FileIoRequest *blockReq, user_items_ptr_t userItemsPtr, 
+        size_t maxItemsToCopy, size_t itemSizeBytes, size_t *itemsCopiedResult )
+    {
+        size_t blockBytesCopiedSoFar = bytesCopied_(blockReq);
+        size_t bytesRemainingInBlock = IO_DATA_BLOCK_DATA_CAPACITY_BYTES - blockBytesCopiedSoFar;
+        size_t wholeItemsRemainingInBlock = bytesRemainingInBlock / itemSizeBytes;
+
+        // Assume that itemSize divides block size, otherwise we need to deal with items overlapping blocks 
+        // and that wouldn't be time-efficient (see NOTE earlier for possible implementation).
+        assert( wholeItemsRemainingInBlock*itemSizeBytes == bytesRemainingInBlock ); 
+
+        if (dataBlock(blockReq)->validCountBytes < blockBytesCopiedSoFar) {
+            // if bytesCopied_ is manipulated to start writing somewhere other than the start of the block
+            // we may have a situation where we need to zero the first part of the block.
+
+            std::memset(static_cast<int8_t*>(dataBlock(blockReq)->data)+dataBlock(blockReq)->validCountBytes, 
+                    0, blockBytesCopiedSoFar-dataBlock(blockReq)->validCountBytes);
+            dataBlock(blockReq)->validCountBytes = blockBytesCopiedSoFar;
+        }
+
+        size_t itemsToCopy = std::min<size_t>(wholeItemsRemainingInBlock, maxItemsToCopy);
+
+        size_t bytesToCopy = itemsToCopy*itemSizeBytes;
+        std::memcpy(static_cast<int8_t*>(dataBlock(blockReq)->data)+blockBytesCopiedSoFar, userItemsPtr, bytesToCopy);
+        bytesCopied_(blockReq) += bytesToCopy;
+
+        dataBlock(blockReq)->validCountBytes = bytesCopied_(blockReq);
+        state_(blockReq) = BLOCK_STATE_READY_MODIFIED;
+
+        *itemsCopiedResult = itemsToCopy;
+
+        if (itemsToCopy==wholeItemsRemainingInBlock) {
+            return AT_BLOCK_END;
+        } else {
+            return CAN_CONTINUE;
+        }
+    }
+};
+
+
+template< typename BlockReq, typename StreamType >
 class FileIoStreamWrapper { // Object-oriented wrapper for a read and write streams
+
+    typedef StreamType STREAMTYPE; // READSTREAM or WRITESTREAM
 
     FileIoRequest *resultQueueReq_; // The data structure is represented by a linked structure of FileIoRequest objects
 
@@ -161,7 +269,7 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
         OpenFileReq is linked by the result queue's transit link. This works because
         the transit link is not used unless the RQ is posted to the server for cleanup.
 
-             READSTREAM*
+             READSTREAM* (or WRITESTREAM*)
                  |
                  | (resultQueueReq_)
                  V 
@@ -262,7 +370,7 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
             returnToServer(blockReq);
             break;
 
-        case BlockReq::BLOCK_STATE_MODIFIED:
+        case BlockReq::BLOCK_STATE_READY_MODIFIED:
             assert( BlockReq::hasDataBlock(blockReq) );
             BlockReq::transformToCommitModified(blockReq);
             returnToServer(blockReq);
@@ -369,10 +477,10 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
     }
 
 public:
-    FileIoStreamWrapper( READSTREAM *fp )
+    FileIoStreamWrapper( STREAMTYPE *fp )
         : resultQueueReq_( static_cast<FileIoRequest*>(fp) ) {}
     
-    static READSTREAM* open( SharedBuffer *path, FileIoRequest::OpenMode openMode )
+    static STREAMTYPE* open( SharedBuffer *path, FileIoRequest::OpenMode openMode )
     {
         // Allocate two requests. Return 0 if allocation fails.
 
@@ -388,7 +496,7 @@ public:
 
         // Initialise the stream data structure
 
-        FileIoReadStreamWrapper stream(resultQueueReq);
+        FileIoStreamWrapper stream(resultQueueReq);
         //std::memset( &resultQueueReq, 0, sizeof(FileIoRequest) );
         stream.resultQueue().init();
 
@@ -412,7 +520,7 @@ public:
         ::sendFileIoRequestToServer(openFileReq);
         stream.resultQueue().incrementExpectedResultCount();
 
-        return static_cast<READSTREAM*>(resultQueueReq);
+        return static_cast<STREAMTYPE*>(resultQueueReq);
     }
 
     void close()
@@ -602,8 +710,8 @@ public:
                             break;
                     }
 #endif
-
-                    if (BlockReq::state_(frontBlockReq) == BlockReq::BLOCK_STATE_READY) {
+                    
+                    if (BlockReq::isReady(frontBlockReq)) {
                         // copy data to/from userItemsPtr and the front block in the prefetch queue
 
                         size_t itemsRemainingToCopy = maxItemsToCopy - itemsCopiedSoFar;
@@ -653,7 +761,7 @@ public:
         return 0;
     }
 
-    FileIoReadStreamState pollState()
+    FileIoStreamState pollState()
     {
         if (resultQueue().expectedResultCount() > 0) {
             if (state_()==STREAM_STATE_OPENING) {
@@ -686,7 +794,7 @@ public:
             }
         }
 
-        return (FileIoReadStreamState)state_();
+        return (FileIoStreamState)state_();
     }
 
     int getError()
@@ -695,8 +803,10 @@ public:
     }
 };
 
-typedef FileIoStreamWrapper<ReadBlockRequestBehavior> FileIoReadStreamWrapper;
 
+// read stream
+
+typedef FileIoStreamWrapper<ReadBlockRequestBehavior,READSTREAM> FileIoReadStreamWrapper;
 
 READSTREAM *FileIoReadStream_open( SharedBuffer *path, FileIoRequest::OpenMode openMode )
 {
@@ -718,7 +828,7 @@ size_t FileIoReadStream_read( void *dest, size_t itemSize, size_t itemCount, REA
     return FileIoReadStreamWrapper(fp).read_or_write(dest, itemSize, itemCount);
 }
 
-FileIoReadStreamState FileIoReadStream_pollState( READSTREAM *fp )
+FileIoStreamState FileIoReadStream_pollState( READSTREAM *fp )
 {
     return FileIoReadStreamWrapper(fp).pollState();
 }
@@ -729,3 +839,36 @@ int FileIoReadStream_getError( READSTREAM *fp )
 }
 
 
+// write stream
+
+typedef FileIoStreamWrapper<WriteBlockRequestBehavior,WRITESTREAM> FileIoWriteStreamWrapper;
+
+WRITESTREAM *FileIoWriteStream_open( SharedBuffer *path, FileIoRequest::OpenMode openMode )
+{
+    return FileIoWriteStreamWrapper::open(path, openMode);
+}
+
+void FileIoWriteStream_close( WRITESTREAM *fp )
+{
+    FileIoWriteStreamWrapper(fp).close();
+}
+
+int FileIoWriteStream_seek( WRITESTREAM *fp, size_t pos )
+{
+    return FileIoWriteStreamWrapper(fp).seek(pos);
+}
+
+size_t FileIoWriteStream_write( const void *src, size_t itemSize, size_t itemCount, WRITESTREAM *fp )
+{
+    return FileIoWriteStreamWrapper(fp).read_or_write(src, itemSize, itemCount);
+}
+
+FileIoStreamState FileIoWriteStream_pollState( WRITESTREAM *fp )
+{
+    return FileIoWriteStreamWrapper(fp).pollState();
+}
+
+int FileIoWriteStream_getError( WRITESTREAM *fp )
+{
+    return FileIoWriteStreamWrapper(fp).getError();
+}

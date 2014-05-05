@@ -132,6 +132,7 @@
     <ClCompile Include="..\..\..\src\FileIoReadStream_test.cpp" />
     <ClCompile Include="..\..\..\src\FileIoServer.cpp" />
     <ClCompile Include="..\..\..\src\FileIoStreams.cpp" />
+    <ClCompile Include="..\..\..\src\FileIoWriteStream_test.cpp" />
     <ClCompile Include="..\..\..\src\PlayFileMain.cpp" />
     <ClCompile Include="..\..\..\src\SharedBuffer.cpp" />
   </ItemGroup>

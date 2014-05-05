@@ -90,7 +90,7 @@ static int audioCallback( const void *inputBuffer, void *outputBuffer,
     
         short temp[FRAMES_PER_BUFFER * 2]; // stereo 16 bit file data
 
-        FileIoReadStreamState streamState = FileIoReadStream_pollState(data->fileReadStream);
+        FileIoStreamState streamState = FileIoReadStream_pollState(data->fileReadStream);
         if (streamState==STREAM_STATE_OPEN_IDLE) {
 
             // once the file is open, seek to play from start
@@ -152,6 +152,7 @@ int main(int argc, char *argv[])
 
     startFileIoServer();
     FileIoReadStream_test();
+    FileIoWriteStream_test();
 
     err = Pa_Initialize();
     if( err != paNoError ) goto error;

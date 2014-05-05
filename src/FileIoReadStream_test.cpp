@@ -11,7 +11,7 @@ void FileIoReadStream_test()
     printf( "opening " );
 
     // in msvc this is a path relative to the project directory:
-    SharedBuffer *path = SharedBufferAllocator::alloc("..\\..\\..\\src\\FileIoStreams.cpp"); // print out the source code of this file
+    SharedBuffer *path = SharedBufferAllocator::alloc("..\\..\\..\\src\\FileIoReadStream_test.cpp"); // print out the source code of this file
     READSTREAM *fp = FileIoReadStream_open(path, FileIoRequest::READ_ONLY_OPEN_MODE);
     path->release();
     assert( fp != 0 );

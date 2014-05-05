@@ -12,7 +12,7 @@ Status
 
 The code works on OS X and Windows. It has been tested on Windows 7 with MSVC10 and OS X 10.7.5 with Xcode 4.6.1.
 
-There's a little bit of work to do to get it working on Linux (replace Mache semaphore_t with sem_t). Maybe a bit more work to get it running on ARM (the interlocked exchange atomic primitive might need some work, not sure).
+There's a little bit of work to do to get it working on Linux (replace Mach semaphore_t with sem_t). Maybe a bit more work to get it running on ARM (the interlocked exchange atomic primitive might need some work, not sure).
 
 
 Source code overview

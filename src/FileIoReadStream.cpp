@@ -71,10 +71,10 @@ struct ReadBlockRequestBehavior : public BlockRequestBehavior {
     
     // In abstract terms, data blocks are /acquired/ from the server and /released/ back to the server.
     //
-    // For read-only streams this means READ_BLOCK to acquire and RELEASE_READ_BLOCK to release.
+    // For read-only streams READ_BLOCK is acquire and RELEASE_READ_BLOCK is release.
     //
-    // For write-only streams this means ALLOCATE_WRITE_BLOCK to acquire and
-    // (RELEASE_UNMODIFIED_WRITE_BLOCK or COMMIT_MODIFIED_WRITE_BLOCK) to release.
+    // For write-only streams ALLOCATE_WRITE_BLOCK is acquire and
+    // (RELEASE_UNMODIFIED_WRITE_BLOCK or COMMIT_MODIFIED_WRITE_BLOCK) is release.
 
     static void initAcquire( FileIoRequest *blockReq, void *fileHandle, size_t pos, FileIoRequest *resultQueueReq )
     {

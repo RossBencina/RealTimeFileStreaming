@@ -212,6 +212,20 @@ static int audioCallback( const void *inputBuffer, void *outputBuffer,
 
 
 /*******************************************************************/
+
+void fail( int err )
+{
+    Pa_Terminate();
+    
+    shutDownFileIoServer();
+    SharedBufferAllocator::reclaimMemory();
+    
+    fprintf( stderr, "An error occured while using the portaudio stream\n" );
+    fprintf( stderr, "Error number: %d\n", err );
+    fprintf( stderr, "Error message: %s\n", Pa_GetErrorText( err ) );
+    exit(err);
+}
+
 int main(int argc, char *argv[]);
 int main(int argc, char *argv[])
 {
@@ -225,13 +239,18 @@ int main(int argc, char *argv[])
     }
     paStreamData.left_phase = paStreamData.right_phase = 0;
     
+#ifdef WIN32
     // Play data from a 16-bit stereo headerless file specified by the following path. sample rate should be SAMPLE_RATE.
     //const char *playbackFilePath = "C:\\Users\\Ross\\Desktop\\07_Hungry_Ghost.dat";
     const char *playbackFilePath = "C:\\RealTimeSafeStreamingFileIoExample\\RealTimeSafeStreamingFileIoExample\\171326__bradovic__piano-improvisation.dat";
 
     // Record to a temp file:
     const char *recordTestFilePath = "C:\\Users\\Ross\\Desktop\\FileStreamingTestRecording.dat";
-
+#else
+    const char *playbackFilePath = "../../../../171326__bradovic__piano-improvisation.dat";
+    const char *recordTestFilePath = "../../../../FileStreamingTestRecording.dat";    
+#endif
+    
     paStreamData.playStream = 0;
     paStreamData.recordStream = 0;
 
@@ -240,14 +259,14 @@ int main(int argc, char *argv[])
     FileIoWriteStream_test();
 
     err = Pa_Initialize();
-    if( err != paNoError ) goto error;
+    if( err != paNoError ) fail(err);
 
     PaStreamParameters inputParameters;
     inputParameters.device = Pa_GetDefaultInputDevice();
     if (inputParameters.device == paNoDevice) {
         fprintf(stderr,"Error: No default input device.\n");
         err = paInvalidDevice;
-        goto error;
+        fail(err);
     }
     inputParameters.channelCount = 2;       /* stereo output */
     inputParameters.sampleFormat = paFloat32; /* 32 bit floating point output */
@@ -259,7 +278,7 @@ int main(int argc, char *argv[])
     if (outputParameters.device == paNoDevice) {
       fprintf(stderr,"Error: No default output device.\n");
       err = paInvalidDevice;
-      goto error;
+      fail(err);
     }
     outputParameters.channelCount = 2;       /* stereo output */
     outputParameters.sampleFormat = paFloat32; /* 32 bit floating point output */
@@ -276,10 +295,10 @@ int main(int argc, char *argv[])
               paNoFlag,
               audioCallback,
               &paStreamData );
-    if( err != paNoError ) goto error;
+    if( err != paNoError ) fail(err);
 
     err = Pa_StartStream( stream );
-    if( err != paNoError ) goto error;
+    if( err != paNoError ) fail(err);
 
     // process user input...
 
@@ -343,10 +362,10 @@ int main(int argc, char *argv[])
     }
 
     err = Pa_StopStream( stream );
-    if( err != paNoError ) goto error;
+    if( err != paNoError ) fail(err);
 
     err = Pa_CloseStream( stream );
-    if( err != paNoError ) goto error;
+    if( err != paNoError ) fail(err);
 
     Pa_Terminate();
     
@@ -370,17 +389,7 @@ int main(int argc, char *argv[])
 
     printf("Test finished.\n");
 
-    return err;
-error:
-    Pa_Terminate();
-
-    shutDownFileIoServer();
-    SharedBufferAllocator::reclaimMemory();
-
-    fprintf( stderr, "An error occured while using the portaudio stream\n" );
-    fprintf( stderr, "Error number: %d\n", err );
-    fprintf( stderr, "Error message: %s\n", Pa_GetErrorText( err ) );
-    return err;
+    return 0;
 }
 
 

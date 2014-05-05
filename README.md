@@ -7,6 +7,14 @@ Example of interfacing PortAudio real time audio with file I/O
 
 This is example code that I'm working on for a conference paper and some blog posts. It probably won't make much sense without the documentation, which will be available by July. Until then feel free to email me with questions. -- Ross.
 
+Status
+------
+
+The code works on OS X and Windows. It has been tested on Windows 7 with MSVC10 and OS X 10.7.5 with Xcode 4.6.1.
+
+There's a little bit of work to do to get it working on Linux (replace Mache semaphore_t with sem_t). Maybe a bit more work to get it running on ARM (the interlocked exchange atomic primitive might need some work, not sure).
+
+
 Source code overview
 --------------------
 

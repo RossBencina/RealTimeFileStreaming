@@ -3,6 +3,11 @@
 #include <cassert>
 #include <cstdio>
 
+#ifndef WIN32
+#include <unistd.h> // for usleep
+#define Sleep(milliseconds) usleep((milliseconds)*1000)
+#endif
+
 
 void FileIoReadStream_test()
 {
@@ -11,7 +16,13 @@ void FileIoReadStream_test()
     printf( "opening " );
 
     // in msvc this is a path relative to the project directory:
-    SharedBuffer *path = SharedBufferAllocator::alloc("..\\..\\..\\src\\FileIoReadStream_test.cpp"); // print out the source code of this file
+#ifdef WIN32
+    const char *pathString = "..\\..\\..\\src\\FileIoReadStream_test.cpp";
+#else
+    const char *pathString = "../../../src/FileIoReadStream_test.cpp";
+#endif    
+    SharedBuffer *path = SharedBufferAllocator::alloc(pathString); // print out the source code of this file
+
     READSTREAM *fp = FileIoReadStream_open(path, FileIoRequest::READ_ONLY_OPEN_MODE);
     path->release();
     assert( fp != 0 );

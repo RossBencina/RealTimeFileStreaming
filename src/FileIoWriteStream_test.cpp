@@ -4,13 +4,23 @@
 #include <cstdio>
 #include <cstring>
 
+#ifndef WIN32
+#include <unistd.h> // for usleep
+#define Sleep(milliseconds) usleep((milliseconds)*1000)
+#endif
+
+
 void FileIoWriteStream_test()
 {
     printf( "> FileIoWriteStream_test()\n" );
 
     printf( "opening " );
 
+#ifdef WIN32
     const char *testFileName = "..\\..\\..\\FileIoWriteStream_test_output.txt";
+#else
+    const char *testFileName = "../../../FileIoWriteStream_test_output.txt";
+#endif
     // in msvc this is a path relative to the project directory:
     SharedBuffer *path = SharedBufferAllocator::alloc(testFileName);
     READSTREAM *fp = FileIoWriteStream_open(path, FileIoRequest::READ_WRITE_OVERWRITE_OPEN_MODE);

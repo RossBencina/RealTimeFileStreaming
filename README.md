@@ -10,13 +10,13 @@ This is example code that I'm working on for a conference paper and some blog po
 Source code overview
 --------------------
 
-`FileIoReadStream.h/.cpp` a client stream object, used for streaming data read from disk. Lock-free and real-time safe. 
+`FileIoStreams.h/.cpp` client stream objects for streaming data to or from a file. Lock-free and real-time safe.
 
-`FileIoRequest.h` asynchronous message node object. Used to represent requests to, and replies from, the I/O server thread.
+`FileIoRequest.h` asynchronous message node object. Represents requests to, and replies from, the I/O server thread.
 
 `FileIoServer.h/.cpp` file I/O server thread. Responds to FileIoRequests from client streams.
 
-`DataBlock.h` buffer descriptor. Used to represent blocks of data read from disk. Pointers to DataBlocks are passed between server and client in FileIoRequest messages.
+`DataBlock.h` buffer descriptor. Represents blocks of data read/written from/to a file. Pointers to DataBlocks are passed between server and client in FileIoRequest messages.
 
 `SharedBuffer.h/.cpp` reference counted immutable shared buffer with lock-free cleanup. Used for storing file paths. 
 

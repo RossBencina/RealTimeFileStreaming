@@ -22,6 +22,8 @@
 #ifndef INCLUDED_FILEIOSERVER_H
 #define INCLUDED_FILEIOSERVER_H
 
+#include <cstddef>
+
 #define MAX_FILE_IO_REQUESTS    (1024)
 
 struct FileIoRequest;
@@ -29,7 +31,7 @@ struct FileIoRequest;
 // public interface to the file I/O server:
 
 // initialize and terminate the server
-void startFileIoServer( size_t fileIoRequestCount=MAX_FILE_IO_REQUESTS);
+void startFileIoServer( std::size_t fileIoRequestCount=MAX_FILE_IO_REQUESTS);
 void shutDownFileIoServer();
 
 // allocate and release requests from the global request pool (real-time safe)

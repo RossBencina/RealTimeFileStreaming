@@ -21,12 +21,24 @@
 */
 #include "FileIoServer.h"
 
-///
+#include <cstdio>
+#include <cerrno>
+
+#ifndef NOERROR
+#define NOERROR (0)
+#endif
+
+#ifdef WIN32
 #define NOMINMAX // suppress windows.h min/max
 #include <Windows.h>
 #include <process.h>
 #include <errno.h>
-///
+#else
+#include <pthread.h>
+#include <mach/mach_init.h>
+#include <mach/task.h> // semaphore_create/destroy
+#include <mach/semaphore.h> // semaphore_signal, semaphore_wait
+#endif
 
 #include "QwMpscFifoQueue.h"
 #include "QwNodePool.h"
@@ -387,8 +399,15 @@ static void handleCleanupResultQueueRequest( FileIoRequest *clientResultQueueCon
 // Server thread setup and teardown
 
 mint_atomic32_t shutdownFlag_;
+#ifdef WIN32
 HANDLE serverMailboxEvent_;
 HANDLE serverThreadHandle_;
+#else
+// google "mach semaphores amit singh" http://books.google.com.au/books?id=K8vUkpOXhN4C&pg=PA1219
+semaphore_t serverMailboxSemaphore_;
+pthread_t serverThread_;
+#endif
+
 QwMpscFifoQueue<FileIoRequest*, FileIoRequest::TRANSIT_NEXT_LINK_INDEX> serverMailboxQueue_;
 
 static void handleAllPendingRequests()
@@ -424,41 +443,70 @@ static void handleAllPendingRequests()
 }
 
 
+#ifdef WIN32
 static unsigned int __stdcall serverThreadProc( void * )
 {
     while (mint_load_32_relaxed(&shutdownFlag_) == 0) {
-        WaitForSingleObject( serverMailboxEvent_, 1000 ); // note: only wait when the incoming queue is empty
+        WaitForSingleObject(serverMailboxEvent_, 1000); // note: only wait when the incoming queue is empty
         handleAllPendingRequests();
     }
 
     return 0;
 }
+#else
+static void* serverThreadProc( void * )
+{
+    while (mint_load_32_relaxed(&shutdownFlag_) == 0) {
+        semaphore_wait(serverMailboxSemaphore_); // note: only wait when the incoming queue is empty
+        handleAllPendingRequests();
+    }
+    
+    return 0;
+}
+#endif
 
 
-void startFileIoServer( size_t fileIoRequestCount )
+void startFileIoServer( std::size_t fileIoRequestCount )
 {
     globalRequestPool_ = new QwNodePool<FileIoRequest>( fileIoRequestCount );
     
     shutdownFlag_._nonatomic = 0;
 
+#ifdef WIN32
     serverMailboxEvent_ = CreateEvent( NULL, /*bManualReset=*/FALSE, /*bInitialState=*/FALSE, NULL ); // auto-reset event
 
     unsigned threadId;
     serverThreadHandle_ = (HANDLE)_beginthreadex( NULL, 0, serverThreadProc, NULL, 0, &threadId );
     SetThreadPriority(serverThreadHandle_, THREAD_PRIORITY_TIME_CRITICAL);
+#else
+    semaphore_create(mach_task_self(), &serverMailboxSemaphore_, SYNC_POLICY_FIFO, 0);
+    
+    pthread_attr_t threadAttrs;
+    pthread_attr_init(&threadAttrs);
+    
+    pthread_create(&serverThread_, &threadAttrs, serverThreadProc, 0);
+#endif
 }
 
 
 void shutDownFileIoServer()
 {
     mint_store_32_relaxed(&shutdownFlag_, 1);
+    
+#ifdef WIN32
     SetEvent(serverMailboxEvent_);
 
     WaitForSingleObject( serverThreadHandle_, 2000 );
     CloseHandle( serverThreadHandle_ );
 
     CloseHandle( serverMailboxEvent_ );
-
+#else
+    semaphore_signal(serverMailboxSemaphore_);
+    
+    pthread_join(serverThread_, 0);
+    semaphore_destroy(mach_task_self(), serverMailboxSemaphore_);
+#endif
+    
     delete globalRequestPool_;
 }
 
@@ -467,8 +515,13 @@ void sendFileIoRequestToServer( FileIoRequest *r )
 {
     bool wasEmpty=false;
     serverMailboxQueue_.push(r, wasEmpty);
-    if (wasEmpty)
+    if (wasEmpty) {
+#ifdef WIN32        
         SetEvent(serverMailboxEvent_);
+#else
+        semaphore_signal(serverMailboxSemaphore_);
+#endif
+    }
 }
 
 
@@ -476,8 +529,13 @@ void sendFileIoRequestsToServer( FileIoRequest *front, FileIoRequest *back )
 {
     bool wasEmpty=false;
     serverMailboxQueue_.push_multiple(front, back, wasEmpty);
-    if (wasEmpty)
+    if (wasEmpty) {
+#ifdef WIN32
         SetEvent(serverMailboxEvent_);
+#else
+        semaphore_signal(serverMailboxSemaphore_);
+#endif
+    }
 }
 
 
@@ -509,7 +567,7 @@ TODO:
         x- close the stream
 
         
-    o- write an example program that can record and play. 
+    x- write an example program that can record and play. 
         press r to start recording, s to stop recording. p to play the recording.
 
 

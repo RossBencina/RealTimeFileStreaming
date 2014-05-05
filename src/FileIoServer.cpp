@@ -427,7 +427,7 @@ void startFileIoServer( size_t fileIoRequestCount )
 
     unsigned threadId;
     serverThreadHandle_ = (HANDLE)_beginthreadex( NULL, 0, serverThreadProc, NULL, 0, &threadId );
-    SetThreadPriority(serverThreadHandle_,THREAD_PRIORITY_TIME_CRITICAL);
+    SetThreadPriority(serverThreadHandle_, THREAD_PRIORITY_TIME_CRITICAL);
 }
 
 
@@ -448,38 +448,26 @@ void shutDownFileIoServer()
 void sendFileIoRequestToServer( FileIoRequest *r )
 {
     bool wasEmpty=false;
-    serverMailboxQueue_.push(r,wasEmpty);
+    serverMailboxQueue_.push(r, wasEmpty);
     if (wasEmpty)
-        SetEvent( serverMailboxEvent_ );
+        SetEvent(serverMailboxEvent_);
+}
+
+
+void sendFileIoRequestsToServer( FileIoRequest *front, FileIoRequest *back )
+{
+    bool wasEmpty=false;
+    serverMailboxQueue_.push_multiple(front, back, wasEmpty);
+    if (wasEmpty)
+        SetEvent(serverMailboxEvent_);
 }
 
 
 
 /*
 TODO:
-    o- factor server mailbox out into separate module, this includes:
-        treiber pop-all part
-        local reversed stack part
-        signalling and waiting mechanism
-
-
-    o- reduce or eliminate dependence on list templates (to simplify the code)
-
-
-    The queues we need are:
-
-        - full Treiber LIFO for request allocation (use this in FileIoRequestAllocator indexing a fixed size request buffer)
-
-        - spsc for result queue
-
-        - reversed list for inbound queue to server
-
-        - pop-all list for shared buffer reclamation
-
-
-    o- ensure server mailbox is cache aligned and that the server-local queue is separated from the global lifo
-
-
+    
+    o- ensure server mailbox is cache-line aligned and that the server-local queue is separated from the global lifo
 
 
     x- example read stream routines (all asynchronous O(1) or near to)

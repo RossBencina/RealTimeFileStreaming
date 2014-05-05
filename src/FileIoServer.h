@@ -39,4 +39,9 @@ void freeFileIoRequest( FileIoRequest *r );
 // post a request to the server (real-time safe) 
 void sendFileIoRequestToServer( FileIoRequest *r );
 
+// post multiple requests to the server (real-time safe).
+// requests should be linked front->b->c->a->back->NULL. 
+// Back will be the first processed by the server.
+void sendFileIoRequestsToServer( FileIoRequest *front, FileIoRequest *back );
+
 #endif /* INCLUDED_STREAMINGFILEIO_H */

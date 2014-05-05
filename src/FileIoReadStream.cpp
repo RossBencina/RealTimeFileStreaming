@@ -25,9 +25,12 @@
 #undef max
 #include <algorithm>
 #include <cassert>
+#include <functional>
 
-#include "FileIoServer.h"
 #include "QwSPSCUnorderedResultQueue.h"
+#include "QwSList.h"
+#include "QwSTailList.h"
+#include "FileIoServer.h"
 #include "SharedBuffer.h"
 #include "DataBlock.h"
 
@@ -48,6 +51,7 @@ struct BlockRequestBehavior { // behavior with implementation common to read and
     // L-value aliases. Map/alias request fields to our use of them.
 
     static FileIoRequest*& next_(FileIoRequest *r) { return r->links_[FileIoRequest::CLIENT_NEXT_LINK_INDEX]; }
+    static FileIoRequest*& transitNext_(FileIoRequest *r) { return r->links_[FileIoRequest::TRANSIT_NEXT_LINK_INDEX]; }
     static int& state_(FileIoRequest *r) { return r->requestType; }
     static size_t& bytesCopied_(FileIoRequest *r) { return r->clientInt; }
 
@@ -206,15 +210,22 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
         prefetchQueueTail_() = blockReq;
     }
 
-    void sendBlockRequestToServer( FileIoRequest *blockReq )
+    void sendAcquireBlockRequestToServer( FileIoRequest *blockReq )
     {
-        ::sendFileIoRequestToServer( blockReq );
+        ::sendFileIoRequestToServer(blockReq);
         resultQueue().incrementExpectedResultCount();
         ++waitingForBlocksCount_();
     }
 
+    void sendAcquireBlockRequestsToServer( FileIoRequest *front, FileIoRequest *back, size_t count )
+    {
+        ::sendFileIoRequestsToServer(front, back);
+        resultQueue().incrementExpectedResultCount(count);
+        waitingForBlocksCount_() += count;
+    }
+
     // Init, link and send sequential block request
-    void initLinkAndSendSequentialBlockRequest( FileIoRequest *blockReq )
+    void initAndLinkSequentialAcquireBlockRequest( FileIoRequest *blockReq )
     {
         // Init, link, and send a sequential data block acquire request (READ_BLOCK or ALLOCATE_WRITE_BLOCK).
         // Init the block request so that it's file position directly follows the tail block in the prefetch queue;
@@ -227,16 +238,15 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
                 BlockReq::filePosition(prefetchQueueTail_()) + IO_DATA_BLOCK_DATA_CAPACITY_BYTES, resultQueueReq_ );
 
         prefetchQueue_push_back(blockReq);
-
-        sendBlockRequestToServer(blockReq);
     }
 
-    void flushBlock( FileIoRequest *blockReq )
+    template< typename ReturnToServerFunc >
+    void flushBlock( FileIoRequest *blockReq, ReturnToServerFunc returnToServer )
     {
         switch (BlockReq::state_(blockReq))
         {
         case BlockReq::BLOCK_STATE_PENDING:
-            // Forget the block, it will show up in the result queue later, 
+            // Forget the block, it will show up in the result queue later 
             // and will be cleaned up from there.
 
             // Setting the "discarded" flag is used when the stream is still alive and we 
@@ -249,13 +259,13 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
         case BlockReq::BLOCK_STATE_READY:
             assert( BlockReq::hasDataBlock(blockReq) );
             BlockReq::transformToReleaseUnmodified(blockReq);
-            ::sendFileIoRequestToServer( blockReq );
+            returnToServer(blockReq);
             break;
 
         case BlockReq::BLOCK_STATE_MODIFIED:
             assert( BlockReq::hasDataBlock(blockReq) );
             BlockReq::transformToCommitModified(blockReq);
-            ::sendFileIoRequestToServer( blockReq );
+            returnToServer(blockReq);
             break;
 
         case BlockReq::BLOCK_STATE_ERROR:
@@ -267,16 +277,24 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
 
     void flushPrefetchQueue()
     {
-        // For each block in the prefetch queue, pop the block from the 
+        // Accumulate requests to return to server in a list and send them using a single operation.
+        typedef QwSTailList<FileIoRequest*, FileIoRequest::TRANSIT_NEXT_LINK_INDEX> transit_list_t;
+        transit_list_t blockRequests;
+
+        // For each block in the prefetch queue, pop the block from the
         // head of the queue and clean up the block.
         while (prefetchQueueHead_()) {
             FileIoRequest *blockReq = prefetchQueue_front();
             prefetchQueue_pop_front();
-            flushBlock( blockReq );
+            flushBlock(blockReq,
+                    std::bind1st(std::mem_fun1(&transit_list_t::push_front), &blockRequests));
         }
 
         prefetchQueueTail_() = 0;
         assert( waitingForBlocksCount_() == 0 );
+
+        if (!blockRequests.empty())
+            ::sendFileIoRequestsToServer(blockRequests.front(), blockRequests.back());
     }
 
     static size_t roundDownToBlockSizeAlignedPosition( size_t pos )
@@ -326,27 +344,27 @@ class FileIoStreamWrapper { // Object-oriented wrapper for a read and write stre
 
     bool advanceToNextBlock()
     {
-        // request and link the next block...
-        FileIoRequest *readBlockReq = allocFileIoRequest();
-        if (!readBlockReq) {
-            // fail. couldn't allocate request
+        // issue next block request, link it on to the tail of the prefetch queue...
+        
+        FileIoRequest *newBlockReq = allocFileIoRequest();
+        if (!newBlockReq) {
+            // Fail. couldn't allocate request
             state_() = STREAM_STATE_ERROR;
             return false;
         }
+        initAndLinkSequentialAcquireBlockRequest(newBlockReq);
+        sendAcquireBlockRequestToServer(newBlockReq);
 
-        // issue next block request, link it on to the tail of the prefetch queue
-        initLinkAndSendSequentialBlockRequest(readBlockReq);
-
-        // unlink the old block...
+        // unlink and flush the old block...
 
         // Notice that we link the new request on the back of the prefetch queue before unlinking
         // the old one off the front, so there is no chance of having to deal with the special case of
         // linking to an empty queue.
 
-        FileIoRequest *frontBlockReq = prefetchQueue_front();
+        FileIoRequest *oldBlockReq = prefetchQueue_front();
         prefetchQueue_pop_front(); // advance head to next block
-        flushBlock(frontBlockReq); // send the old block back to the server
-
+        flushBlock(oldBlockReq, ::sendFileIoRequestToServer);
+        
         return true;
     }
 
@@ -484,23 +502,37 @@ public:
         prefetchQueueHead_() = firstBlockReq;
         prefetchQueueTail_() = firstBlockReq;
 
-        // FIXME TODO: queue all requests at once with enqueue-multiple
-        // Use push-multiple when performing a seek operation. That minimises contention.
-        // TODO: also use queue multiple for closing the stream
+        // Optimisation: enqueue all block requests at once. First link them into a list, then enqueue them.
+        // This minimises contention on the communication queue by only invoking a single push operation.
 
-        sendBlockRequestToServer(firstBlockReq);
-
+        // Construct a linked list of block requests to enqueue, firstBlockReq will be at the tail.
+        // lastBlockReq -> ... -> firstBlockReq -> 0
+        QwSList<FileIoRequest*, FileIoRequest::TRANSIT_NEXT_LINK_INDEX> blockRequests;
+        BlockReq::transitNext_(firstBlockReq) = 0;
+        blockRequests.push_front(firstBlockReq);
+    
         for (int i=1; i < prefetchQueueBlockCount; ++i) {
-            FileIoRequest *readBlockReq = allocFileIoRequest();
-            if (!readBlockReq) {
-                // fail. couldn't allocate request
+            FileIoRequest *blockReq = allocFileIoRequest();
+            if (!blockReq) {
+                // Fail. couldn't allocate request.
+
+                // Rollback: deallocate all allocated block requests
+                while (!blockRequests.empty()) {
+                    FileIoRequest *r = blockRequests.front();
+                    blockRequests.pop_front();
+                    freeFileIoRequest(r);
+                }
+
                 state_() = STREAM_STATE_ERROR;
                 return -1;
             }
 
-            initLinkAndSendSequentialBlockRequest( readBlockReq );
+            initAndLinkSequentialAcquireBlockRequest(blockReq);
+            blockRequests.push_front(blockReq);
         }
 
+        sendAcquireBlockRequestsToServer(blockRequests.front(), firstBlockReq, prefetchQueueBlockCount);
+        
         state_() = STREAM_STATE_OPEN_BUFFERING;
 
         return 0;

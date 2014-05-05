@@ -27,7 +27,7 @@ Source code overview
 How to build and run the example
 --------------------------------
 
-*Right now there is only a project file for Windows MSVC10, sorry. OS X coming soon. Help with Linux welcome.*
+*At the moment there are project files for Windows MSVC10 and OS X (Xcode 4.6 or later). Help with Linux would be welcome.*
 
 1. Check out the sources and the dependencies:
 
@@ -49,10 +49,11 @@ How to build and run the example
 
 
 2. Open the project.
- - On Windows, with MSVC2010 or later, navigate to `RealTimeFileStreaming\build\msvs10\RealTimeFileStreaming` and open the Visual Studio solution file RealTimeFileStreaming.sln
+ - On Windows, with MSVC2010 or later, navigate to `RealTimeFileStreaming\build\msvs10\RealTimeFileStreaming` and open the Visual Studio solution file `RealTimeFileStreaming.sln`
+ - On OS X, with Xcode 4.6 or later, navigate to `RealTimeFileStreaming\build\xcode4.6\RealTimeFileStreaming` and open the Xcode project `RealTimeFileStreaming.xcodeproj`
 
 
-3. Set up audio file paths. The example program references two file paths: `playbackFilePath` for playing an existing file and `recordTestFilePath` for playing and recording a test file. These are both declared in `main()` in `RecordAndPlayFileMain.cpp`. You need to edit their values to refer to valid file paths on your system (don't forget to escape backslashes if you're on Windows). The example code only reads headerless 16-bit stereo files (44.1k for the default settings). 
+3. Set up audio file paths. The example program references two file paths: `playbackFilePath` for playing an existing file and `recordTestFilePath` for playing and recording a test file. These are both declared in `main()` in `RecordAndPlayFileMain.cpp`. You need to edit their values to refer to valid file paths on your system (don't forget to escape backslashes if you're on Windows). The example code only reads headerless 16-bit stereo files (44.1k for the default settings).
  - For `playbackFilePath` you either need to create a file of the appropriate format, or you can grab this file: https://www.dropbox.com/s/ec923lzkr9udxww/171326__bradovic__piano-improvisation.dat [1].
  - The `recordTestFilePath` file should be a valid path on your system, but the file should *not* exist. It will be created or overwritten every time you start recording from within the test program. Just make sure that the directory portion of the path exists.
 

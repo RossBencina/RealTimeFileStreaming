@@ -24,7 +24,7 @@
 
 #include <cstdlib> // size_t
 
-#include "QwSPSCUnorderedResultQueue.h"
+#include "QwSpscUnorderedResultQueue.h"
 #include "SharedBuffer.h"
 
 #define IO_INVALID_FILE_HANDLE (0)

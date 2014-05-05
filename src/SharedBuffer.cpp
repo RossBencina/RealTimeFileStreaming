@@ -25,7 +25,7 @@
 #include <cstring> // strcpy
 #include <cstdlib>
 
-#include "QwMPMCPopAllLifoStack.h"
+#include "QwMpmcPopAllLifoStack.h"
 
 #ifndef NDEBUG
 #define DEBUG_COUNT_SHARED_BUFFER_ALLOCATIONS
@@ -37,7 +37,7 @@ struct MemoryBlock {
     MemoryBlock *links_[1];
 };
 
-static QwMPMCPopAllLifoStack<MemoryBlock*,0> reclaimQueue_;
+static QwMpmcPopAllLifoStack<MemoryBlock*,0> reclaimQueue_;
 
 #ifdef DEBUG_COUNT_SHARED_BUFFER_ALLOCATIONS
 mint_atomic32_t allocCount_ = {0};

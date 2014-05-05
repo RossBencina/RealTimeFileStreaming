@@ -132,9 +132,6 @@
     <ClCompile Include="..\..\..\src\FileIoServer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\PlayFileMain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\SharedBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -196,6 +193,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\FileIoWriteStream_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\RecordAndPlayFileMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

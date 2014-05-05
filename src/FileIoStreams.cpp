@@ -27,7 +27,7 @@
 #include <cassert>
 #include <functional>
 
-#include "QwSPSCUnorderedResultQueue.h"
+#include "QwSpscUnorderedResultQueue.h"
 #include "QwSList.h"
 #include "QwSTailList.h"
 #include "FileIoServer.h"
@@ -670,9 +670,13 @@ public:
             break;
 
         case STREAM_STATE_OPEN_BUFFERING:
+            // In BUFFERING the stream can still read or write if there is
+            // data available. Hence the fall-through below. If clients want to
+            // pause while the stream is buffering they need to poll the state and
+            // implement their own pause logic.
             {
 #if defined(IO_USE_CONSTANT_TIME_RESULT_POLLING)
-                return 0; // We're BUFFERING. Output nothing.
+                // fall through
 #else
                 // The call to pollState() above only deals with at most one pending block.
                 // To reduce the latency of transitioning from  BUFFERING to STREAMING we can drain the result queue here.
@@ -681,11 +685,11 @@ public:
                 while (receiveOneBlock()) 
                     /* loop until all replies have been processed */ ;
 
-                if (state_() != STREAM_STATE_OPEN_STREAMING)
+                if (state_() != STREAM_STATE_OPEN_STREAMING && state_() != STREAM_STATE_OPEN_BUFFERING)
                     return 0;
-                /* FALLS THROUGH */
 #endif         
-            }  
+            }
+            /* FALLS THROUGH */
 
         case STREAM_STATE_OPEN_STREAMING:
             {

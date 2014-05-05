@@ -28,9 +28,9 @@
 #include <errno.h>
 ///
 
-#include "QwMPSCFifoQueue.h"
+#include "QwMpscFifoQueue.h"
 #include "QwNodePool.h"
-#include "QwSPSCUnorderedResultQueue.h"
+#include "QwSpscUnorderedResultQueue.h"
 #include "SharedBuffer.h"
 #include "DataBlock.h"
 
@@ -389,7 +389,7 @@ static void handleCleanupResultQueueRequest( FileIoRequest *clientResultQueueCon
 mint_atomic32_t shutdownFlag_;
 HANDLE serverMailboxEvent_;
 HANDLE serverThreadHandle_;
-QwMPSCFifoQueue<FileIoRequest*, FileIoRequest::TRANSIT_NEXT_LINK_INDEX> serverMailboxQueue_;
+QwMpscFifoQueue<FileIoRequest*, FileIoRequest::TRANSIT_NEXT_LINK_INDEX> serverMailboxQueue_;
 
 static void handleAllPendingRequests()
 {

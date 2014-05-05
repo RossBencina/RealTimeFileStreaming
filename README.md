@@ -20,7 +20,7 @@ Source code overview
 
 `SharedBuffer.h/.cpp` reference counted immutable shared buffer with lock-free cleanup. Used for storing file paths. 
 
-`PlayFileMain.cpp` example real-time audio program.
+`RecordAndPlayFileMain.cpp` example real-time audio program that records and plays raw 16-bit stereo files.
 
 
 
@@ -51,4 +51,5 @@ You should now have the following directories:
 
 3. Run the project. It should build and run, playing a sine wave. There are instructions on the screen for starting and stopping recording and playback.
 
-To play an existing file you need to provide one. The source code only reads headerless 16-bit stereo files (44.1k for the default settings). You should create such a file and then code its name into the main() function in PlayFileMain.cpp, in the line that reads `paStreamData.readFilePath = SharedBufferAllocator::alloc("C:\\Users\\Ross...");`
+To play an existing file you need to provide one. The source code only reads headerless 16-bit stereo files (44.1k for the default settings). You should create such a file and then code its name into the main() function in RecordAndPlayFileMain.cpp, in the line that reads `const char *playbackFilePath = "C:\\Users\\Ross\\Desktop\\07_Hungry_Ghost.dat";` Similarly, you should edit the value of the assignment to `recordTestFilePath` to specify a non-existent file that will be used for recording and playback of live recording.
+

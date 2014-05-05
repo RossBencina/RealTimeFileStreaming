@@ -66,6 +66,9 @@ struct FileIoRequest{
         void *clientPtr;
     };
 
+    // result queue type, used below:
+    typedef QwSpscUnorderedResultQueue<FileIoRequest*,TRANSIT_NEXT_LINK_INDEX> result_queue_t;
+    
     // discriminated union:
     int requestType; // RequestType
     union {
@@ -120,7 +123,6 @@ struct FileIoRequest{
         } releaseUnmodifiedWriteBlock;
 
         /* CLEANUP_RESULT_QUEUE */
-        typedef QwSpscUnorderedResultQueue<FileIoRequest*,TRANSIT_NEXT_LINK_INDEX> result_queue_t;
         result_queue_t resultQueue;
     };
 };

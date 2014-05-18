@@ -24,10 +24,6 @@
 #include <cstdio>
 #include <cerrno>
 
-#ifndef NOERROR
-#define NOERROR (0)
-#endif
-
 #ifdef WIN32
 #define NOMINMAX // suppress windows.h min/max
 #include <Windows.h>
@@ -38,6 +34,10 @@
 #include <mach/mach_init.h>
 #include <mach/task.h> // semaphore_create/destroy
 #include <mach/semaphore.h> // semaphore_signal, semaphore_wait
+#endif
+
+#ifndef NOERROR
+#define NOERROR (0)
 #endif
 
 #include "QwMpscFifoQueue.h"

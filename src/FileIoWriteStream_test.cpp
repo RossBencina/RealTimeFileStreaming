@@ -61,7 +61,7 @@ void FileIoWriteStream_test()
         size_t bytesToWrite = std::strlen(s);
 
         // write bytes out one at a time because the current implementation of write requires items to be block-aligned
-        for (int j=0; j <bytesToWrite; ++j) {
+        for (size_t j=0; j <bytesToWrite; ++j) {
             FileIoWriteStream_write( &s[j], 1, 1, fp );
         }
     }

@@ -105,6 +105,7 @@
     <ClInclude Include="..\..\..\..\QueueWorld\include\QwSTailList.h" />
     <ClInclude Include="..\..\..\..\QueueWorld\include\qw_atomic.h" />
     <ClInclude Include="..\..\..\..\QueueWorld\include\qw_remove_pointer.h" />
+    <ClInclude Include="..\..\..\src\CancelableCompletionFlag.h" />
     <ClInclude Include="..\..\..\src\DataBlock.h" />
     <ClInclude Include="..\..\..\src\FileIoRequest.h" />
     <ClInclude Include="..\..\..\src\FileIoServer.h" />

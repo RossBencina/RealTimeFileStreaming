@@ -127,6 +127,9 @@
     <ClInclude Include="..\..\..\src\FileIoStreams.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\CancelableCompletionFlag.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\FileIoServer.cpp">

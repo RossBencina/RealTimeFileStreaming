@@ -25,6 +25,7 @@
 #include <cstdlib> // size_t
 
 #include "QwSpscUnorderedResultQueue.h"
+#include "CancelableCompletionFlag.h"
 #include "SharedBuffer.h"
 
 #define IO_INVALID_FILE_HANDLE (0)
@@ -48,10 +49,11 @@ struct FileIoRequest{
         ALLOCATE_WRITE_BLOCK,
         COMMIT_MODIFIED_WRITE_BLOCK,
         RELEASE_UNMODIFIED_WRITE_BLOCK,
-        CLEANUP_RESULT_QUEUE,
-        RESULT_QUEUE_IS_AWAITING_CLEANUP_, /* SERVER INTERNAL USE ONLY */
+        NO_OP,
 
-        CLIENT_USE_BASE_ = 16
+        CLIENT_USE_BASE_ = 16,
+
+        FLUSH_PREFETCH_QUEUE_FLAG=128
     };
 
     enum OpenMode {
@@ -78,26 +80,27 @@ struct FileIoRequest{
             SharedBuffer *path;         // IN NOTE: request owns a ref to path (use addRef and release)
             OpenMode openMode;          // IN
             void *fileHandle;           // OUT
-            FileIoRequest *resultQueue; // IN
+            CancelableCompletionFlag completionFlag; // SHARED
         } openFile;
 
         /* CLOSE_FILE */ 
         struct {
             void *fileHandle;           // IN
         } closeFile;
-
+        
         /* READ_BLOCK */ 
         struct {
             void *fileHandle;           // IN
             std::size_t filePosition;   // IN
             DataBlock *dataBlock;       // OUT
             bool isAtEof;               // OUT
-            FileIoRequest *resultQueue; // IN
+            CancelableCompletionFlag completionFlag; // SHARED
         } readBlock;
 
         /* RELEASE_READ_BLOCK */ 
         struct {
             void *fileHandle;           // IN
+            std::size_t filePosition;   // IN
             DataBlock *dataBlock;       // IN
         } releaseReadBlock;
 
@@ -106,24 +109,15 @@ struct FileIoRequest{
             void *fileHandle;           // IN
             std::size_t filePosition;   // IN
             DataBlock *dataBlock;       // OUT
-            FileIoRequest *resultQueue; // IN
+            CancelableCompletionFlag completionFlag; // SHARED
         } allocateWriteBlock;
 
-        /* COMMIT_MODIFIED_WRITE_BLOCK */ 
+        /* COMMIT_MODIFIED_WRITE_BLOCK, RELEASE_UNMODIFIED_WRITE_BLOCK */
         struct {
             void *fileHandle;           // IN
             std::size_t filePosition;   // IN
             DataBlock *dataBlock;       // IN
-        } commitModifiedWriteBlock;
-
-        /* RELEASE_UNMODIFIED_WRITE_BLOCK */ 
-        struct {
-            void *fileHandle;           // IN
-            DataBlock *dataBlock;       // IN
-        } releaseUnmodifiedWriteBlock;
-
-        /* CLEANUP_RESULT_QUEUE */
-        result_queue_t resultQueue;
+        } commitOrReleaseWriteBlock;
     };
 };
 

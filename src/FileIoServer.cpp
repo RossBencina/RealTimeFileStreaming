@@ -24,10 +24,6 @@
 #include <cstdio>
 #include <cerrno>
 
-#ifndef NOERROR
-#define NOERROR (0)
-#endif
-
 #ifdef WIN32
 #define NOMINMAX // suppress windows.h min/max
 #include <Windows.h>
@@ -38,6 +34,10 @@
 #include <mach/mach_init.h>
 #include <mach/task.h> // semaphore_create/destroy
 #include <mach/semaphore.h> // semaphore_signal, semaphore_wait
+#endif
+
+#ifndef NOERROR
+#define NOERROR (0)
 #endif
 
 #include "QwMpscFifoQueue.h"
@@ -66,40 +66,6 @@ void freeFileIoRequest( FileIoRequest *r )
 ///////////////////////////////////////////////////////////////////////////////
 // Server thread routines
 
-static void cleanupOneRequestResult( FileIoRequest *r ); // forward reference
-
-static void completeRequestToClientResultQueue( FileIoRequest *clientResultQueueContainer, FileIoRequest *r )
-{
-    // Poll the state of the result queue *before* posting result back to client
-    // because if the result queue is not being cleaned up the server doesn't own it
-    // and can't use it after returning the result.
-    bool resultQueueIsAwaitingCleanup = (clientResultQueueContainer->requestType == FileIoRequest::RESULT_QUEUE_IS_AWAITING_CLEANUP_);
-
-    if (resultQueueIsAwaitingCleanup) {
-        // Option A:
-        cleanupOneRequestResult(r);
-        if (clientResultQueueContainer->resultQueue.expectedResultCount() == 0)
-            freeFileIoRequest(clientResultQueueContainer);
-        
-        /*
-        // Option B:
-        // the potential advantage of doing it this way is that the cleanup is deferred until
-        // after all currently pending requests have been handled. this might reduce request 
-        // handling latency slightly, at the expense of leaving unused resources allocated longer.
-        pushResultToResultQueue(clientResultQueueContainer, r);
-
-        // schedule the result queue for further cleanup
-        clientResultQueueContainer->requestType = FileIoRequest::CLEANUP_RESULT_QUEUE;
-        pushServerInternalFileIoRequest( clientResultQueueContainer );
-        */
-
-    } else {
-        clientResultQueueContainer->resultQueue.push(r);
-    }
-}
-
-///
-
 static DataBlock* allocDataBlock()
 {
     DataBlock *result = new DataBlock;
@@ -124,9 +90,34 @@ namespace {
     };
 } // end anonymous namespace
 
+// open file
+static void handleOpenFileRequest( FileIoRequest *r );
+static void cleanupOpenFileRequest( FileIoRequest *r );
+
+// close file
+static void releaseFileRecordClientRef( FileRecord *fileRecord );
+static void handleCloseFileRequest( FileIoRequest *r );
+
+// read block
+static void handleReadBlockRequest( FileIoRequest *r );
+static void cleanupReadBlockRequest( FileIoRequest *r );
+static void handleReleaseReadBlockRequest( FileIoRequest *r );
+
+// write block
+static void handleAllocateWriteBlockRequest( FileIoRequest *r );
+static void cleanupAllocateWriteBlockRequest( FileIoRequest *r );
+static void handleCommitModifiedWriteBlockRequest( FileIoRequest *r );
+static void handleReleaseUnmodifiedWriteBlockRequest( FileIoRequest *r );
+
+// open file
+
 static void handleOpenFileRequest( FileIoRequest *r )
 {
     assert( r->requestType == FileIoRequest::OPEN_FILE );
+
+    if (r->openFile.completionFlag.has_been_canceled_async()) {
+        cleanupOpenFileRequest(r);
+    }
 
     FileRecord *fileRecord = new FileRecord;
     if (fileRecord) {
@@ -141,7 +132,7 @@ static void handleOpenFileRequest( FileIoRequest *r )
             r->resultStatus = NOERROR;
         } else {
             delete fileRecord;
-            r->openFile.fileHandle = 0;
+            r->openFile.fileHandle = IO_INVALID_FILE_HANDLE;
             r->resultStatus = (errno==NOERROR) ? EIO : errno;
         }
     } else {
@@ -149,8 +140,32 @@ static void handleOpenFileRequest( FileIoRequest *r )
         r->resultStatus = ENOMEM;
     }
     
-    completeRequestToClientResultQueue(r->openFile.resultQueue, r);
+    if (!r->openFile.completionFlag.try_complete_async()) {
+        cleanupOpenFileRequest(r);
+    }
 }
+
+static void cleanupOpenFileRequest( FileIoRequest *r )
+{
+    assert( r->requestType == FileIoRequest::OPEN_FILE );
+
+    // in any case, release the path
+    r->openFile.path->release();
+    r->openFile.path = 0;
+
+    if (r->openFile.fileHandle != IO_INVALID_FILE_HANDLE) { // the open was successful, close the handle
+        // convert the open file request into a close request
+        void *fileHandle = r->openFile.fileHandle;
+
+        r->requestType = FileIoRequest::CLOSE_FILE;
+        r->closeFile.fileHandle = fileHandle;
+        handleCloseFileRequest(r);
+    } else {
+        freeFileIoRequest(r);
+    }
+}
+
+// close file
 
 static void releaseFileRecordClientRef( FileRecord *fileRecord )
 {
@@ -168,11 +183,17 @@ static void handleCloseFileRequest( FileIoRequest *r )
     freeFileIoRequest(r);
 }
 
+// read block
+
 static void handleReadBlockRequest( FileIoRequest *r )
 {
     assert( r->requestType == FileIoRequest::READ_BLOCK );
     // Allocate the block, perform the fread, return the block to the client, 
     // increment the file record dependent count.
+
+    if (r->readBlock.completionFlag.has_been_canceled_async()) {
+        freeFileIoRequest(r);
+    }
 
     FileRecord *fileRecord = static_cast<FileRecord*>(r->readBlock.fileHandle);
     if (fileRecord) {
@@ -223,7 +244,27 @@ static void handleReadBlockRequest( FileIoRequest *r )
     if (r->readBlock.dataBlock)
         ++fileRecord->dependentClientCount;
 
-    completeRequestToClientResultQueue(r->readBlock.resultQueue, r);
+    if (!r->readBlock.completionFlag.try_complete_async()) {
+        cleanupReadBlockRequest(r);
+    }
+}
+
+static void cleanupReadBlockRequest( FileIoRequest *r )
+{
+    assert( r->requestType == FileIoRequest::READ_BLOCK );
+
+    if (r->readBlock.dataBlock) { // the read was successful, release the block
+        // convert the read block request into a release read block request
+        void *fileHandle = r->readBlock.fileHandle;
+        DataBlock *dataBlock = r->readBlock.dataBlock;
+
+        r->requestType = FileIoRequest::RELEASE_READ_BLOCK;
+        r->releaseReadBlock.fileHandle = fileHandle;
+        r->releaseReadBlock.dataBlock = dataBlock;
+        handleReleaseReadBlockRequest(r);
+    } else {
+        freeFileIoRequest(r);
+    }
 }
 
 static void handleReleaseReadBlockRequest( FileIoRequest *r )
@@ -237,12 +278,18 @@ static void handleReleaseReadBlockRequest( FileIoRequest *r )
     freeFileIoRequest(r);
 }
 
+// write block
+
 static void handleAllocateWriteBlockRequest( FileIoRequest *r )
 {
     assert( r->requestType == FileIoRequest::ALLOCATE_WRITE_BLOCK );
     // Allocate the block, read existing data (if any), return the block to the client,
     // increment the file record dependent count
     
+    if (r->allocateWriteBlock.completionFlag.has_been_canceled_async()) {
+        freeFileIoRequest(r);
+    }
+
     FileRecord *fileRecord = static_cast<FileRecord*>(r->allocateWriteBlock.fileHandle);
     if (fileRecord) {
         DataBlock *dataBlock = allocDataBlock();
@@ -273,7 +320,27 @@ static void handleAllocateWriteBlockRequest( FileIoRequest *r )
     if (r->allocateWriteBlock.dataBlock)
         ++fileRecord->dependentClientCount;
 
-    completeRequestToClientResultQueue(r->allocateWriteBlock.resultQueue, r);
+    if (!r->allocateWriteBlock.completionFlag.try_complete_async()) {
+        cleanupAllocateWriteBlockRequest(r);
+    }
+}
+
+static void cleanupAllocateWriteBlockRequest( FileIoRequest *r )
+{
+    assert( r->requestType == FileIoRequest::ALLOCATE_WRITE_BLOCK );
+
+    if (r->allocateWriteBlock.dataBlock) { // the allocation was successful, release the block
+        // convert the allocate write block request into a release write block request
+        void *fileHandle = r->allocateWriteBlock.fileHandle;
+        DataBlock *dataBlock = r->allocateWriteBlock.dataBlock;
+
+        r->requestType = FileIoRequest::RELEASE_UNMODIFIED_WRITE_BLOCK;
+        r->commitOrReleaseWriteBlock.fileHandle = fileHandle;
+        r->commitOrReleaseWriteBlock.dataBlock = dataBlock;
+        handleReleaseUnmodifiedWriteBlockRequest(r);
+    } else {
+        freeFileIoRequest(r);
+    }
 }
 
 static void handleCommitModifiedWriteBlockRequest( FileIoRequest *r )
@@ -281,19 +348,19 @@ static void handleCommitModifiedWriteBlockRequest( FileIoRequest *r )
     assert( r->requestType == FileIoRequest::COMMIT_MODIFIED_WRITE_BLOCK );
     // Write valid data to the file, free the data block, decrement file record dependent client count
 
-    FileRecord *fileRecord = static_cast<FileRecord*>(r->commitModifiedWriteBlock.fileHandle);
+    FileRecord *fileRecord = static_cast<FileRecord*>(r->commitOrReleaseWriteBlock.fileHandle);
     if (fileRecord) {
         // FIXME: we're only supporting 32 bit file positions here
-        if (std::fseek(fileRecord->fp, r->commitModifiedWriteBlock.filePosition, SEEK_SET)==0) {
-            DataBlock *dataBlock = r->commitModifiedWriteBlock.dataBlock;
+        if (std::fseek(fileRecord->fp, r->commitOrReleaseWriteBlock.filePosition, SEEK_SET)==0) {
+            DataBlock *dataBlock = r->commitOrReleaseWriteBlock.dataBlock;
             std::fwrite(dataBlock->data, 1, dataBlock->validCountBytes, fileRecord->fp); // silently ignore errors
         }else{
             // couldn't seek to position, silently fail
         }
     }
 
-    freeDataBlock(r->commitModifiedWriteBlock.dataBlock);
-    releaseFileRecordClientRef( static_cast<FileRecord*>(r->commitModifiedWriteBlock.fileHandle) );
+    freeDataBlock(r->commitOrReleaseWriteBlock.dataBlock);
+    releaseFileRecordClientRef( static_cast<FileRecord*>(r->commitOrReleaseWriteBlock.fileHandle) );
     freeFileIoRequest(r);
 }
 
@@ -302,98 +369,53 @@ static void handleReleaseUnmodifiedWriteBlockRequest( FileIoRequest *r )
     assert( r->requestType == FileIoRequest::RELEASE_UNMODIFIED_WRITE_BLOCK );
     // Free the data block, decrement file record dependent client count
 
-    freeDataBlock(r->releaseUnmodifiedWriteBlock.dataBlock);
-    releaseFileRecordClientRef( static_cast<FileRecord*>(r->releaseUnmodifiedWriteBlock.fileHandle) );
+    freeDataBlock(r->commitOrReleaseWriteBlock.dataBlock);
+    releaseFileRecordClientRef( static_cast<FileRecord*>(r->commitOrReleaseWriteBlock.fileHandle) );
     freeFileIoRequest(r);
 }
 
-static void cleanupOneRequestResult( FileIoRequest *r )
+///////////////////////////////////////////////////////////////////////////////
+
+static void cleanupPrefetchQueue( FileIoRequest *r )
 {
-    switch (r->requestType) // we only need to handle requests that return results here
-    {
-    case FileIoRequest::OPEN_FILE:
-        {
-            // in any case, release the path
-            r->openFile.path->release();
-            r->openFile.path = 0;
+    r->requestType = r->requestType & ~FileIoRequest::FLUSH_PREFETCH_QUEUE_FLAG;
 
-            if (r->openFile.fileHandle != 0) { // the open was successful, close the handle
-                // convert the open file request into a close request
-                void *fileHandle = r->openFile.fileHandle;
+    do{
+        FileIoRequest *next = r->links_[FileIoRequest::CLIENT_NEXT_LINK_INDEX];
+        r->links_[FileIoRequest::CLIENT_NEXT_LINK_INDEX] = 0;
 
-                r->requestType = FileIoRequest::CLOSE_FILE;
-                r->closeFile.fileHandle = fileHandle;
-                handleCloseFileRequest(r);
-            } else {
-                freeFileIoRequest(r);
-            }
+        switch (r->requestType) {
+        case FileIoRequest::OPEN_FILE:
+        case FileIoRequest::CLOSE_FILE:
+            assert(false);
+            break;
+        case FileIoRequest::READ_BLOCK:
+            if (!r->readBlock.completionFlag.try_cancel_sync())
+                cleanupReadBlockRequest(r);
+            break;
+        case FileIoRequest::RELEASE_READ_BLOCK:
+            handleReleaseReadBlockRequest(r);
+            break;
+        case FileIoRequest::ALLOCATE_WRITE_BLOCK:
+            if (!r->allocateWriteBlock.completionFlag.try_cancel_sync())
+                cleanupAllocateWriteBlockRequest(r);
+            break;
+        case FileIoRequest::COMMIT_MODIFIED_WRITE_BLOCK:
+            handleCommitModifiedWriteBlockRequest(r);
+            break;
+        case FileIoRequest::RELEASE_UNMODIFIED_WRITE_BLOCK:
+            handleReleaseUnmodifiedWriteBlockRequest(r);
+            break;
+        case FileIoRequest::NO_OP:
+            freeFileIoRequest(r);
+            break;
+        default:
+            assert(false);
         }
-        break;
 
-    case FileIoRequest::READ_BLOCK:
-        {
-            if (r->readBlock.dataBlock) { // the read was successful, release the block
-                // convert the read block request into a release read block request
-                void *fileHandle = r->readBlock.fileHandle;
-                DataBlock *dataBlock = r->readBlock.dataBlock;
-
-                r->requestType = FileIoRequest::RELEASE_READ_BLOCK;
-                r->releaseReadBlock.fileHandle = fileHandle;
-                r->releaseReadBlock.dataBlock = dataBlock;
-                handleReleaseReadBlockRequest(r);
-            } else {
-                freeFileIoRequest(r);
-            }
-        }
-        break;
-
-    case FileIoRequest::ALLOCATE_WRITE_BLOCK:
-        {
-            if (r->allocateWriteBlock.dataBlock) { // the allocation was successful, release the block
-                // convert the allocate write block request into a release write block request
-                void *fileHandle = r->allocateWriteBlock.fileHandle;
-                DataBlock *dataBlock = r->allocateWriteBlock.dataBlock;
-
-                r->requestType = FileIoRequest::RELEASE_UNMODIFIED_WRITE_BLOCK;
-                r->releaseUnmodifiedWriteBlock.fileHandle = fileHandle;
-                r->releaseUnmodifiedWriteBlock.dataBlock = dataBlock;
-                handleReleaseUnmodifiedWriteBlockRequest(r);
-            } else {
-                freeFileIoRequest(r);
-            }
-        }
-        break;
-    
-    default:
-        assert(false); // only requests that have results should be encountered
-    }
+        r = next;
+    } while(r);
 }
-
-static void handleCleanupResultQueueRequest( FileIoRequest *clientResultQueueContainer )
-{
-    // Cleanup any results that are in the queue, either free the queue now, or mark it for cleanup later.
-
-    assert( clientResultQueueContainer->requestType == FileIoRequest::CLEANUP_RESULT_QUEUE );
-
-    if (clientResultQueueContainer->resultQueue.expectedResultCount() > 0)
-    {
-        while (FileIoRequest *r = clientResultQueueContainer->resultQueue.pop())
-        {
-            cleanupOneRequestResult(r);
-        }
-
-        if (clientResultQueueContainer->resultQueue.expectedResultCount() == 0) {
-            freeFileIoRequest(clientResultQueueContainer);
-        } else {
-            // mark the queue for cleanup. 
-            // cleanup is resumed by completeRequestToClientResultQueue() the next time that a request completes
-            clientResultQueueContainer->requestType = FileIoRequest::RESULT_QUEUE_IS_AWAITING_CLEANUP_;
-        }
-    } else {
-        freeFileIoRequest(clientResultQueueContainer);
-    }
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Server thread setup and teardown
@@ -414,31 +436,38 @@ QwMpscFifoQueue<FileIoRequest*, FileIoRequest::TRANSIT_NEXT_LINK_INDEX> serverMa
 static void handleAllPendingRequests()
 {
     while (FileIoRequest *r = serverMailboxQueue_.pop()) {
-        switch (r->requestType) {
-        case FileIoRequest::OPEN_FILE:
-            handleOpenFileRequest(r);
-            break;
-        case FileIoRequest::CLOSE_FILE:
-            handleCloseFileRequest(r);
-            break;
-        case FileIoRequest::READ_BLOCK:
-            handleReadBlockRequest(r);
-            break;
-        case FileIoRequest::RELEASE_READ_BLOCK:
-            handleReleaseReadBlockRequest(r);
-            break;
-        case FileIoRequest::ALLOCATE_WRITE_BLOCK:
-            handleAllocateWriteBlockRequest(r);
-            break;
-        case FileIoRequest::COMMIT_MODIFIED_WRITE_BLOCK:
-            handleCommitModifiedWriteBlockRequest(r);
-            break;
-        case FileIoRequest::RELEASE_UNMODIFIED_WRITE_BLOCK:
-            handleReleaseUnmodifiedWriteBlockRequest(r);
-            break;
-        case FileIoRequest::CLEANUP_RESULT_QUEUE:
-            handleCleanupResultQueueRequest(r);
-            break;
+
+        if (r->requestType&FileIoRequest::FLUSH_PREFETCH_QUEUE_FLAG) {
+            cleanupPrefetchQueue(r);
+        } else {
+            switch (r->requestType) {
+            case FileIoRequest::OPEN_FILE:
+                handleOpenFileRequest(r);
+                break;
+            case FileIoRequest::CLOSE_FILE:
+                handleCloseFileRequest(r);
+                break;
+            case FileIoRequest::READ_BLOCK:
+                handleReadBlockRequest(r);
+                break;
+            case FileIoRequest::RELEASE_READ_BLOCK:
+                handleReleaseReadBlockRequest(r);
+                break;
+            case FileIoRequest::ALLOCATE_WRITE_BLOCK:
+                handleAllocateWriteBlockRequest(r);
+                break;
+            case FileIoRequest::COMMIT_MODIFIED_WRITE_BLOCK:
+                handleCommitModifiedWriteBlockRequest(r);
+                break;
+            case FileIoRequest::RELEASE_UNMODIFIED_WRITE_BLOCK:
+                handleReleaseUnmodifiedWriteBlockRequest(r);
+                break;
+            case FileIoRequest::NO_OP:
+                freeFileIoRequest(r);
+                break;
+            default:
+                assert(false);
+            }
         }
     }
 }

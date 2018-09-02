@@ -58,7 +58,7 @@
     <ClInclude Include="..\..\..\..\QueueWorld\include\QwNodePool.h">
       <Filter>QueueWorld</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\QueueWorld\include\QwSingleLinkNodeInfo.h">
+    <ClInclude Include="..\..\..\..\QueueWorld\include\QwLinkTraits.h">
       <Filter>QueueWorld</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\QueueWorld\include\QwSList.h">

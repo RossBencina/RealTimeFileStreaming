@@ -99,7 +99,7 @@
     <ClInclude Include="..\..\..\..\QueueWorld\include\QwMpmcPopAllLifoStack.h" />
     <ClInclude Include="..\..\..\..\QueueWorld\include\QwMpscFifoQueue.h" />
     <ClInclude Include="..\..\..\..\QueueWorld\include\QwNodePool.h" />
-    <ClInclude Include="..\..\..\..\QueueWorld\include\QwSingleLinkNodeInfo.h" />
+    <ClInclude Include="..\..\..\..\QueueWorld\include\QwLinkTraits.h" />
     <ClInclude Include="..\..\..\..\QueueWorld\include\QwSList.h" />
     <ClInclude Include="..\..\..\..\QueueWorld\include\QwSpscUnorderedResultQueue.h" />
     <ClInclude Include="..\..\..\..\QueueWorld\include\QwSTailList.h" />

@@ -92,7 +92,7 @@
 		739ECB841917BF4500ED19DE /* QwMpmcPopAllLifoStack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwMpmcPopAllLifoStack.h; path = ../../../../QueueWorld/include/QwMpmcPopAllLifoStack.h; sourceTree = "<group>"; };
 		739ECB851917BF4500ED19DE /* QwMpscFifoQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwMpscFifoQueue.h; path = ../../../../QueueWorld/include/QwMpscFifoQueue.h; sourceTree = "<group>"; };
 		739ECB861917BF4500ED19DE /* QwNodePool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwNodePool.h; path = ../../../../QueueWorld/include/QwNodePool.h; sourceTree = "<group>"; };
-		739ECB871917BF4500ED19DE /* QwSingleLinkNodeInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwSingleLinkNodeInfo.h; path = ../../../../QueueWorld/include/QwSingleLinkNodeInfo.h; sourceTree = "<group>"; };
+		739ECB871917BF4500ED19DE /* QwLinkTraits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwLinkTraits.h; path = ../../../../QueueWorld/include/QwLinkTraits.h; sourceTree = "<group>"; };
 		739ECB881917BF4500ED19DE /* QwSList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwSList.h; path = ../../../../QueueWorld/include/QwSList.h; sourceTree = "<group>"; };
 		739ECB891917BF4500ED19DE /* QwSpscUnorderedResultQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwSpscUnorderedResultQueue.h; path = ../../../../QueueWorld/include/QwSpscUnorderedResultQueue.h; sourceTree = "<group>"; };
 		739ECB8A1917BF4500ED19DE /* QwSTailList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = QwSTailList.h; path = ../../../../QueueWorld/include/QwSTailList.h; sourceTree = "<group>"; };
@@ -239,7 +239,7 @@
 				739ECB841917BF4500ED19DE /* QwMpmcPopAllLifoStack.h */,
 				739ECB851917BF4500ED19DE /* QwMpscFifoQueue.h */,
 				739ECB861917BF4500ED19DE /* QwNodePool.h */,
-				739ECB871917BF4500ED19DE /* QwSingleLinkNodeInfo.h */,
+				739ECB871917BF4500ED19DE /* QwLinkTraits.h */,
 				739ECB881917BF4500ED19DE /* QwSList.h */,
 				739ECB891917BF4500ED19DE /* QwSpscUnorderedResultQueue.h */,
 				739ECB8A1917BF4500ED19DE /* QwSTailList.h */,

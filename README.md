@@ -3,9 +3,13 @@ RealTimeFileStreaming
 
 Example of interfacing PortAudio real time audio with file I/O
 
-***UNDER CONSTRUCTION***
+This is example code for the paper:
 
-This is example code that I'm working on for a conference paper and some blog posts. It probably won't make much sense without the documentation, which will be available by July. Until then feel free to email me with questions. -- Ross.
+> Bencina, R. (2014) "Interfacing Real-Time Audio and File I/O," Proceedings of the 2014 Australasian Computer Music Conference, ACMC 2014. Melbourne, Australia. July 9-11 2014.
+
+The paper and supporting materials are available at the following URL:
+
+ http://www.rossbencina.com/code/interfacing-real-time-audio-and-file-io
 
 Status
 ------

@@ -49,7 +49,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>PA_USE_WMME;WIN32;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PAWIN_WDMKS_NO_KSGUID_LIB;PA_USE_WMME;WIN32;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\portaudio\src\common;$(ProjectDir)\..\..\..\..\\portaudio\include;$(ProjectDir)\..\..\..\..\\QueueWorld\include;$(ProjectDir)\..\..\..\..\\mintomic\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -65,7 +65,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>PA_USE_WMME;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PAWIN_WDMKS_NO_KSGUID_LIB;PA_USE_WMME;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)\..\..\..\..\portaudio\src\common;$(ProjectDir)\..\..\..\..\\portaudio\include;$(ProjectDir)\..\..\..\..\\QueueWorld\include;$(ProjectDir)\..\..\..\..\\mintomic\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>

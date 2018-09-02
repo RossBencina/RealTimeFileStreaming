@@ -45,7 +45,7 @@ How to build and run the example
 
  ```
  git clone https://github.com/RossBencina/RealTimeFileStreaming.git
- git clone https://github.com/RossBencina/QueueWorld.git
+ git clone -b C++03-legacy https://github.com/RossBencina/QueueWorld.git
  git clone https://github.com/mintomic/mintomic.git
  svn co https://subversion.assembla.com/svn/portaudio/portaudio/trunk/ portaudio
  ```
@@ -59,6 +59,7 @@ How to build and run the example
   portaudio/
  ```
 
+ [Note: this example code uses the C++03 version of QueueWorld. The C++11 version of QueueWorld is currently untested with this RealTimeFileStreaming example code.]
 
 2. Open the project.
  - On Windows, with MSVC2010 or later, navigate to `RealTimeFileStreaming\build\msvs10\RealTimeFileStreaming` and open the Visual Studio solution file `RealTimeFileStreaming.sln`
